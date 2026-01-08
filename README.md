@@ -21,9 +21,11 @@ I choose this controller because it has advanced timer capability which can give
 4. raw values will be transmitted to the UI , UI should convert them to physical values and handle the processing of data
 
 
-   _#### Note : _this does not need to be perfect , but it needs to be working
-   _ #### Note : _this will take time , please do not expect this to be an easy feat
-   _ #### Note : _this will be recorded and documented for reaching to people and showcasing our talent
+   *Note : this does not need to be perfect , but it needs to be working*
+   
+   *Note : this will take time , please do not expect this to be an easy feat*
+   
+   *Note : this will be recorded and documented for reaching to people and showcasing our talent*
 
    If you are here , thanks , let us start with whatever time we have on our hands and i will try to do it with whatever bangalore traffic allows me :) 
 
