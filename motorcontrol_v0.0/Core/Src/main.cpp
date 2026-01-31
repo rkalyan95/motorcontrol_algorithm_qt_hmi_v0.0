@@ -66,7 +66,7 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN 0 */
 
 
-
+Gpio DefaultLed;
 
 /* USER CODE END 0 */
 
@@ -101,18 +101,21 @@ int main(void)
   
  
   /* USER CODE BEGIN 2 */
-Gpio DefaultLed(*led_builtin_nucleo_GPIO_Port,led_builtin_nucleo_Pin);
-  /* USER CODE END 2 */
+
+  DefaultLed.Init();  
+
+/* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  
   while (1)
   {
     /* USER CODE END WHILE */
      
     /* USER CODE BEGIN 3 */
     DefaultLed.Toggle();
-    HAL_Delay(100);  
+    HAL_Delay(500);  
   }
   /* USER CODE END 3 */
 }
