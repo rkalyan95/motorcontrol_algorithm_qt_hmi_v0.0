@@ -3,6 +3,8 @@
 *.ko
 *.obj
 *.elf
+*.d
+*.lst
 
 # Libraries
 *.lib
@@ -23,16 +25,19 @@
 *.i*86
 *.x86_64
 *.hex
+*.bin
 
 # Misc
 *.map
 *.m
 *.png
 
+
 # Eclipse CDT project files
 .cproject
 .project
 .settings/
+
 
 # Vagrant directory
 .vagrant/
