@@ -1,18 +1,17 @@
 extern "C" {
     #include "gpio.h"
-    #include "usart.h"
+    //#include "usart.h"
 }
 
 #include "fsm.h"
 
-void blink::init(void) {
-            MX_GPIO_Init();
-}
-
-
-void blink::run(void)
+Gpio :: Gpio(GPIO_TypeDef &port,uint16_t portpin) : hwport(&port),pin(portpin)
 {
-      HAL_GPIO_TogglePin(led_builtin_nucleo_GPIO_Port, led_builtin_nucleo_Pin);
-      HAL_Delay(500);
+    MX_GPIO_Init();
+} 
 
+void Gpio :: Toggle(void)
+{
+      HAL_GPIO_TogglePin(hwport, pin);
+     
 }

@@ -14,10 +14,15 @@ extern "C" {
  */
 #ifdef __cplusplus
 
-class blink {
-public:
-    void init();
-    void run();
+class Gpio 
+{
+    private:
+        GPIO_TypeDef *hwport;
+        const uint16_t pin;
+        
+    public:
+        Gpio(GPIO_TypeDef &port,uint16_t portpin);
+        void Toggle(void);
 };
 
 #endif /* __cplusplus */

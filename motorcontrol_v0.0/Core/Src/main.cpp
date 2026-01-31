@@ -18,19 +18,21 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
 extern "C" {
     #include "main.h"
     #include "gpio.h"
-    #include "usart.h"
+    
 }
 
 // 2. Include your C++ logic
 #include "fsm.h"
 
-blink led;
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
 
+
+void SystemClock_Config(void);
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -55,13 +57,16 @@ blink led;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
-void SystemClock_Config(void);
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+
+
 
 /* USER CODE END 0 */
 
@@ -89,14 +94,14 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-
+   
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
-  led.init();
-  MX_USART1_UART_Init();
+  
+ 
   /* USER CODE BEGIN 2 */
-
+Gpio DefaultLed(*led_builtin_nucleo_GPIO_Port,led_builtin_nucleo_Pin);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -106,8 +111,8 @@ int main(void)
     /* USER CODE END WHILE */
      
     /* USER CODE BEGIN 3 */
-    led.run();
-      
+    DefaultLed.Toggle();
+    HAL_Delay(100);  
   }
   /* USER CODE END 3 */
 }
@@ -150,7 +155,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
     Error_Handler();
   }
