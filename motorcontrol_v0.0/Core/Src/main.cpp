@@ -24,7 +24,10 @@
 extern "C" {
     #include "main.h"
     #include "gpio.h"
-    
+    #include "tim.h"
+    #include "usart.h"
+    #include <cstring>
+    #include <cstdio>
 }
 
 // 2. Include your C++ logic
@@ -66,8 +69,21 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN 0 */
 
 
-Gpio DefaultLed;
-
+Gpio DefaultLed(led_builtin_nucleo_GPIO_Port ,GPIO_PIN_13);
+Gpio tinyMlButton(extern_button_ml_GPIO_Port,extern_button_ml_Pin);
+Timer PWM_PA0(&htim2, TIM_CHANNEL_1);
+Timer PWM_PA1(&htim2, TIM_CHANNEL_1);
+Timer PWM_PA2(&htim2, TIM_CHANNEL_1);
+float weights[50] = {
+-0.0000f, -0.0000f, -0.0000f, -0.0000f, -0.0000f, -0.0000f, -0.0000f, 
+-0.0000f, -0.0000f, -0.0000f, -0.0827f, -0.1974f, -0.4032f, -0.3515f, 
+-0.1192f, -0.0935f, -0.0230f, 0.0000f, 0.0000f, 0.0000f, 0.0000f, 0.0000f, 
+0.0000f, 0.0386f, 0.1376f, 0.2118f, 0.4065f, 0.6143f, 0.6143f, 0.7335f, 
+0.7335f, 0.7335f, 0.7335f, 0.7335f, 0.5664f, 0.4957f, 0.1853f, 0.0000f, 
+0.0000f, 0.0000f, 0.0000f, 0.0000f, 0.0000f, 0.0000f, 0.0000f, 0.0000f, 
+0.0000f, 0.0000f, 0.0000f, 0.0000f
+};
+float bias = -2.4701f;
 /* USER CODE END 0 */
 
 /**
@@ -78,7 +94,7 @@ int main(void)
 {
    
   /* USER CODE BEGIN 1 */
-
+GPIO_PinState mlbuttonstate = GPIO_PIN_SET;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -87,7 +103,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+   MX_USART1_UART_Init();
   /* USER CODE END Init */
    
   /* Configure the system clock */
@@ -101,22 +117,91 @@ int main(void)
   
  
   /* USER CODE BEGIN 2 */
-
+  float live_input[20];
+  float sum = 0.0f;
+  float final_result = 0.0f;
   DefaultLed.Init();  
+  tinyMlButton.Init();
+  PWM_PA0.Init();
+  PWM_PA1.Init();
+  PWM_PA2.Init();
 
+  PWM_PA0.PwmSetDutyCycle(0);
+  PWM_PA1.PwmSetDutyCycle(0);
+  PWM_PA2.PwmSetDutyCycle(0);
+
+  PWM_PA0.RunTimer();
+  PWM_PA1.RunTimer();
+  PWM_PA1.RunTimer();
+  HAL_UART_Transmit(&huart1, (uint8_t *)"welcome", strlen("welcome"), 500);
 /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   
-  while (1)
-  {
-    /* USER CODE END WHILE */
-     
-    /* USER CODE BEGIN 3 */
-    DefaultLed.Toggle();
-    HAL_Delay(500);  
+  while (1) {
+    // Wait for initial press
+
+    if (tinyMlButton.Get() == GPIO_PIN_RESET) 
+    {
+    float live_input[50];
+    float sum = 0.0f;
+
+    // 1. Capture 500ms of data
+    for (int i = 0; i < 50; i++) {
+        live_input[i] = (tinyMlButton.Get() == GPIO_PIN_RESET) ? 1.0f : 0.0f;
+        HAL_Delay(10);
+    }
+
+    // 2. Compute Dot Product (Inference)
+    for (int i = 0; i < 50; i++) {
+        sum += (live_input[i] * weights[i]);
+    }
+
+    float final_score = sum + bias;
+
+    // 3. AI Decision
+    if (final_score > 0.0f) {
+        // Positive score = Double Click (Class 1)
+        HAL_UART_Transmit(&huart1, (uint8_t*)"AI: DOUBLE CLICK\r\n", 18, 100);
+        DefaultLed.Toggle(); 
+    } else {
+        // Negative score = Single Click (Class 0)
+        HAL_UART_Transmit(&huart1, (uint8_t*)"AI: SINGLE CLICK\r\n", 18, 100);
+        DefaultLed.Toggle();
+    }
+
+    // Wait for release
+    while (tinyMlButton.Get() == GPIO_PIN_RESET);
   }
+  }
+
+    /*if (tinyMlButton.Get() == GPIO_PIN_RESET) {
+        float live_input[50];
+        float sum = 0.0f;
+        // Capture 50 samples (10ms apart)
+
+        
+        for (int i = 0; i < 50; i++) {
+            int state = (tinyMlButton.Get() == GPIO_PIN_RESET) ? 1 : 0;
+            
+            // Print to Serial: 1,0,1... (no spaces, just commas)
+            char buf[4];
+            sprintf(buf, "%d%s", state, (i == 49) ? "" : ",");
+            HAL_UART_Transmit(&huart1, (uint8_t*)buf, strlen(buf), 10);
+            
+            HAL_Delay(10);
+        }
+        
+        // Newline at the end of the pattern
+        HAL_UART_Transmit(&huart1, (uint8_t*)"\r\n", 2, 10);
+        
+        // Wait for release before allowing next capture
+        while (tinyMlButton.Get() == GPIO_PIN_RESET);
+
+        */
+    
+
   /* USER CODE END 3 */
 }
 

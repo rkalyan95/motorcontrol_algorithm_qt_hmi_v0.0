@@ -33,13 +33,31 @@ class Gpio : public Peripheral
         
     public:
         Gpio();
-        Gpio(GPIO_TypeDef &port,uint16_t portpin);
+        Gpio(GPIO_TypeDef *port,uint16_t portpin);
         void Init(void)  override ;
         void Uninit(void)  override ;
         void Set (void);
         void Reset(void);
         void Toggle(void);
+        GPIO_PinState Get(void);
         ~Gpio();
+};
+
+class Timer : public Peripheral
+{
+    public:
+        Timer();
+        Timer(TIM_HandleTypeDef *htim,uint8_t channelnum);
+        void Init(void) override;
+        void Uninit(void) override;
+        void PwmSetDutyCycle(float dutycycle);
+        void RunTimer(void);
+        ~Timer();
+    private:
+        TIM_HandleTypeDef *hardwareinstance;
+        uint8_t channel_num;
+        float dutycycle;
+        float freq;
 };
 
 #endif /* __cplusplus */
