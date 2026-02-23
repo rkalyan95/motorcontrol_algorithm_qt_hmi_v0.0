@@ -1,0 +1,29 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName "Verdana"
+
+state "Initialize" as init
+state "Idle / Ready" as idle
+state "Driving (Forward/Reverse)" as running
+state "Electronic Braking" as breaking
+state "System Fault" as fault <<warning>>
+
+[*] --> init
+
+init --> idle : System_Ready
+
+idle -right-> running : Torque_Request > 0
+running -left-> idle : Speed == 0
+
+running -down-> breaking : Torque_Request < 0
+breaking -up-> running : Torque_Request > 0
+breaking -> idle : Speed == 0
+
+' Centralized Fault Logic
+running -down-> fault : Error_Detected
+breaking -down-> fault : Error_Detected
+idle -down-> fault : Error_Detected
+
+fault -up-> idle : Reset_Command
+@enduml

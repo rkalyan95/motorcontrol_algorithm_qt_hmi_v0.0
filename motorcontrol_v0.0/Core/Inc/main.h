@@ -57,20 +57,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define pwm_pin_pa0_Pin GPIO_PIN_0
-#define pwm_pin_pa0_GPIO_Port GPIOA
-#define pwm_pin_pa1_Pin GPIO_PIN_1
-#define pwm_pin_pa1_GPIO_Port GPIOA
-#define pwm_pin_pa2_Pin GPIO_PIN_2
-#define pwm_pin_pa2_GPIO_Port GPIOA
 #define led_builtin_nucleo_Pin GPIO_PIN_13
 #define led_builtin_nucleo_GPIO_Port GPIOB
-#define extern_button_ml_Pin GPIO_PIN_8
-#define extern_button_ml_GPIO_Port GPIOC
-#define usart1_tx_pa9_Pin GPIO_PIN_9
-#define usart1_tx_pa9_GPIO_Port GPIOA
-#define usart1_tx_pa10_Pin GPIO_PIN_10
-#define usart1_tx_pa10_GPIO_Port GPIOA
 
 /* USER CODE BEGIN Private defines */
 
