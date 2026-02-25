@@ -25,7 +25,7 @@ extern "C" {
     #include "main.h"
     #include "gpio.h"
     #include "tim.h"
-    
+    #include "adc.h"
     #include <cstring>
     #include <cstdio>
 }
@@ -40,7 +40,7 @@ void SystemClock_Config(void);
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+uint32_t my_reading[8];
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -90,6 +90,7 @@ int main(void)
   HAL_Init();
   MX_GPIO_Init();
   MX_TIM1_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN Init */
   // 1. Start the 3 PWM channels
 HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1); // PA8
@@ -135,9 +136,27 @@ __HAL_TIM_MOE_ENABLE(&htim1);
   /* USER CODE BEGIN WHILE */
   
   while (1) {
+    for(uint8_t i=0;i<8;i++)
+    {
+      HAL_ADC_Start(&hadc1);
+      if (HAL_ADC_PollForConversion(&hadc1, 10) == HAL_OK) 
+        {
+          my_reading[i]  = HAL_ADC_GetValue(&hadc1);
+        }
+        else
+        {
+          my_reading[i] = 0;
+        }
 
-        DefaultLed.Toggle();
-        HAL_Delay(1000);
+        HAL_ADC_Stop(&hadc1); // Optional: Resets state for the next Rank
+    }
+
+    for(uint8_t i=0;i<8;i++)
+    {
+          DefaultLed.Toggle();
+          HAL_Delay(my_reading[i]);
+    } 
+
   }
 
   /* USER CODE END 3 */
