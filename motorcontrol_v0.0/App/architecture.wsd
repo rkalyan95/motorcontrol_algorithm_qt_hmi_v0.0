@@ -1,0 +1,136 @@
+@startuml
+
+/' Things which can change 
+1. the controller can change 
+2. the motor driver ic can change
+3. the motor itself can change
+4. the sensors of temperature can change
+5. current sensors can change
+6. type of control can change sensored or sensorless
+7. most importantly the pins can change
+8. diagonstic telemtry interface can change , 
+    uart to can or whatever lin maybe
+9. the peripherals used for different parameters 
+   can also change ,adc to spi or something else
+10. clock and timing source can change
+'/
+
+
+class IMotorDriver
+{
+    #pwm_phase_x_duty[3] : float
+    #phase_bot_x_enable[3] : bool
+    #phase_x_bemf[3] : float
+    #motor_driver_temperature : float
+    #motor_bus_voltage : float
+    #current_fdbk_x[3] : float
+    #sensorless_control : bool
+    
+    #Peripheral *timer : pointer to timer Peripheral
+    #Peripheral *gpio :  pointer to gpio Peripheral
+    #Sensor *sensor : pointer to sensor for sensored control
+
+    +virtual void set_pwm_duty_cycle(uint8_t phase , float duty)
+    +virtual void get_pwm_duty_cycle(uint8_t phase , float *duty)
+    +virtual void get_vbus(float *vbus)
+    +virtual void get_temperature(float *temperature);
+    +virtual void get_backemf(uint8_t phase , float *bemf);
+    +virtual void get_fdbkcurrent(uint8_t phase , float *fdbkcurrent);
+}
+
+IMotorDriver o-- Peripheral : Aggregation
+IMotorDriver o-- Sensor : Aggregation
+
+class IHM16M1 
+{
+    +void set_pwm_duty_cycle(uint8_t phase , float duty)
+    +void get_pwm_duty_cycle(uint8_t phase , float *duty)
+    +void get_vbus(float *vbus)
+    +void get_temperature(float *temperature)
+    +void get_backemf(uint8_t phase , float *bemf)
+    +void get_fdbkcurrent(uint8_t phase , float *fdbkcurrent)
+}
+
+IMotorDriver <|-- IHM16M1 : IHM16M1 Implements IMotorDriver
+
+
+class Motor 
+{
+    #IMotorDriver *hbridge;
+    #connectiontopolgy : star delta
+    #resistance : float
+    #inductance : float
+    #polePair : uint8
+    #maxvoltagerating : float
+    #maxcurrentrating : float
+    #nominalpowerwatts :float
+    #kv_rating : float
+    #ke_const : float
+    #kt_const  : float
+    #rotor_inertia : float
+    #slot_count : uint8_t
+    +virtual void set_motor_speed(float speed);
+    +virtual void get_motor_speed(float *speed);
+    +virtual void get_motor_posn(float *angle);
+    +virtual void get_motor_temperature(float *temperature);
+    +virtual void get_motor_ph_emf(uint8_t phase,float *bemf);
+    +virtual void get_phase_current(uint8_t phase , float *current);
+}
+
+
+class BLDC
+{
+    +void set_motor_speed(float speed);
+    +void get_motor_speed(float *speed);
+    +void get_motor_posn(float *angle);
+    +void get_motor_ph_emf(uint8_t phase,float *bemf);
+    +void get_phase_current(uint8_t phase , float *current);
+}
+
+
+Motor o-- IMotorDriver : Aggregation
+Motor <|-- BLDC : Generalization
+
+class Sensor
+{
+    -Peripheral *periph;
+    -Sensor Gain
+    -Sensor Offset
+    -Sensor Raw
+    -Sensor phy
+     
+    #void sensorinit(void)
+    #void sensorwrite(void)
+    #void sensorread(void)
+    +void getsensorraw(uint16_t *sensor raw)
+    +void getsensorphy(float *sensorphy)
+    +void setsensorparam(uint16_t sensorgain , sensoroffset)
+}
+
+Sensor o-- Peripheral : Aggregation
+
+class Diagonostic 
+{
+    -Peripheral *periph;
+    +diagonstic_id;
+    +diagonstic_data;
+
+    +void senddiagonsticframe(frame)
+    +getperipheraladdress(baseaddress)
+}
+
+Diagonostic o-- Peripheral : Aggregation
+
+class Peripheral 
+{
+       -base_address *baseaddress;
+       +void init()
+       +void uninit()
+       +void read()
+       +void write()
+       +getbaseaddress(base_address *ptr)
+}
+
+
+
+@enduml

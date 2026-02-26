@@ -70,7 +70,9 @@ uint32_t my_reading[8];
 
 
 Gpio DefaultLed(led_builtin_nucleo_GPIO_Port ,GPIO_PIN_13);
-
+Gpio EnablePhaseU(GPIOC ,GPIO_PIN_8); 
+Gpio EnablePhaseV(GPIOB ,GPIO_PIN_6);
+Gpio EnablePhaseW(GPIOA ,GPIO_PIN_11);
 /* USER CODE END 0 */
 
 /**
@@ -154,6 +156,9 @@ __HAL_TIM_MOE_ENABLE(&htim1);
     for(uint8_t i=0;i<8;i++)
     {
           DefaultLed.Toggle();
+          EnablePhaseU.Toggle();
+          EnablePhaseV.Toggle();
+          EnablePhaseW.Toggle();
           HAL_Delay(my_reading[i]);
     } 
 
