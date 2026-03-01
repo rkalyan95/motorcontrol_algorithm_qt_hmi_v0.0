@@ -93,7 +93,7 @@ Motor <|-- BLDC : Generalization
 
 class Sensor
 {
-    -Peripheral *periph;
+    -IPeripheral *periph;
     -Sensor Gain
     -Sensor Offset
     -Sensor Raw
@@ -107,11 +107,11 @@ class Sensor
     +void setsensorparam(uint16_t sensorgain , sensoroffset)
 }
 
-Sensor o-- Peripheral : Aggregation
+Sensor o-- IPeripheral : Aggregation
 
 class Diagonostic 
 {
-    -Peripheral *periph;
+    -IPeripheral *periph;
     +diagonstic_id;
     +diagonstic_data;
 
@@ -119,18 +119,56 @@ class Diagonostic
     +getperipheraladdress(baseaddress)
 }
 
-Diagonostic o-- Peripheral : Aggregation
+Diagonostic o-- IPeripheral : Aggregation
 
-class Peripheral 
+class IPeripheral 
 {
-       -base_address *baseaddress;
+       #base_address *periphaddress;
+       +virtual void init()
+       +virtual void uninit()
+       +virtual void read()
+       +virtual void write()
+       +virtual void getperiphaddress(periph_addr *ptr)
+}
+
+class Gpio 
+{
+       -pinstate : bool
+       -pinnumber : uint16_t
+       +void setstate(bool)
+       void init()
+       +void uninit()
+       +void read()
+       +void write()
+       +void void getperiphaddress(periph_addr *ptr)
+}
+
+class Timer
+{
+       -frequency :  float
+       -dutycycle : float
+       +void setpwmparameters(freq , dutycycle)
+       +void getpwmparameters(float *freq , float *dutycycle)
        +void init()
        +void uninit()
        +void read()
        +void write()
-       +getbaseaddress(base_address *ptr)
+       +void void getperiphaddress(periph_addr *ptr)
 }
 
+class Adc
+{
+       -channelnumber : uint8_t
+       -rawcount : uint16_t
+       +void init()
+       +void uninit()
+       +void read()
+       +void write()
+       +void void getperiphaddress(periph_addr *ptr)
+}
 
+IPeripheral o-- Gpio : Aggregation
+IPeripheral o-- Timer : Aggregation
+IPeripheral o-- Adc : Aggregation
 
 @enduml

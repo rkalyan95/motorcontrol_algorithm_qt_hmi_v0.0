@@ -73,6 +73,10 @@ Gpio DefaultLed(led_builtin_nucleo_GPIO_Port ,GPIO_PIN_13);
 Gpio EnablePhaseU(GPIOC ,GPIO_PIN_8); 
 Gpio EnablePhaseV(GPIOB ,GPIO_PIN_6);
 Gpio EnablePhaseW(GPIOA ,GPIO_PIN_11);
+
+Timer timer1(&htim1, (uint32_t)TIM_CHANNEL_1);
+Timer timer2(&htim1, (uint32_t)TIM_CHANNEL_2);
+Timer timer3(&htim1, (uint32_t)TIM_CHANNEL_3);
 /* USER CODE END 0 */
 
 /**
@@ -83,7 +87,8 @@ int main(void)
 {
    
   /* USER CODE BEGIN 1 */
-
+   bool ledstate  = 0;
+   float dutycycle = 0.15;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -95,21 +100,29 @@ int main(void)
   MX_ADC1_Init();
   /* USER CODE BEGIN Init */
   // 1. Start the 3 PWM channels
-HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1); // PA8
-HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2); // PA9
-HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3); // PA10
+
 
 // Update Channel 1 (PA8) to 50% duty cycle
 // If ARR is 39999, set CCR to 20000
-__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 100);
+//__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 100);
 
 // Update Channel 2 (PA9)
-__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 100);
+//__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 100);
 
 // Update Channel 3 (PA10)
-__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 100);
+//__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 100);
+
+//HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1); // PA8
+//HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2); // PA9
+//HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3); // PA10
+timer1.setdutycycle(&dutycycle);
+timer2.setdutycycle(&dutycycle);
+timer3.setdutycycle(&dutycycle);
+
+timer1.startpwm();
+timer2.startpwm();
+timer3.startpwm();
 // 2. Enable the Main Output (Crucial for Advanced Timers)
-__HAL_TIM_MOE_ENABLE(&htim1);
 
 // 3. Keep the IHM16M1 board powered (Nucleo-P SMPS pin)
 //HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET); 
@@ -129,7 +142,7 @@ __HAL_TIM_MOE_ENABLE(&htim1);
   
  
   /* USER CODE BEGIN 2 */
-  DefaultLed.Init();  
+  DefaultLed.init();  
   
 
 /* USER CODE END 2 */
@@ -138,7 +151,7 @@ __HAL_TIM_MOE_ENABLE(&htim1);
   /* USER CODE BEGIN WHILE */
   
   while (1) {
-    for(uint8_t i=0;i<8;i++)
+    /*for(uint8_t i=0;i<8;i++)
     {
       HAL_ADC_Start(&hadc1);
       if (HAL_ADC_PollForConversion(&hadc1, 10) == HAL_OK) 
@@ -161,7 +174,18 @@ __HAL_TIM_MOE_ENABLE(&htim1);
           EnablePhaseW.Toggle();
           HAL_Delay(my_reading[i]);
     } 
+*/
 
+    DefaultLed.setpin();
+    EnablePhaseU.setpin();
+    EnablePhaseV.setpin();
+    EnablePhaseW.setpin();
+    HAL_Delay(100);
+    DefaultLed.resetpin();
+    EnablePhaseU.resetpin();
+    EnablePhaseV.resetpin();
+    EnablePhaseW.resetpin();
+    HAL_Delay(100);
   }
 
   /* USER CODE END 3 */

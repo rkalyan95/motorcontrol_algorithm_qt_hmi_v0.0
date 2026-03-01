@@ -6,89 +6,120 @@ extern "C" {
 
 #include "fsm.h"
 
-void Gpio :: Init(void)
+template <typename StateType>
+void Gpio<StateType> :: init(void)
 {
-    MX_GPIO_Init();
+    
 }
-
-void Gpio :: Uninit(void)
+template <typename StateType>
+void Gpio<StateType>  :: setstate(StateType nextstate)
+{
+    this->pinstate = nextstate;
+}
+template <typename StateType>
+StateType Gpio<StateType>  :: getstate(void)
+{
+    read();
+    return this->pinstate;
+}
+template <typename StateType>
+void Gpio<StateType>  :: uninit(void)
 {
     /*As of now nothing*/
 }
-
-void Gpio :: Set(void)
+template <typename StateType>
+void Gpio<StateType>  :: write(void)
 {
-    HAL_GPIO_WritePin(hwport, pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(this->periphraddress, this->pin, this->pinstate);
 }
-
-GPIO_PinState Gpio :: Get(void)
+template <typename StateType>
+void Gpio<StateType>  :: read(void)
 {
-    return HAL_GPIO_ReadPin(hwport, pin);
+    pinstate = HAL_GPIO_ReadPin(this->periphraddress, this->pin);
 }
-void Gpio :: Reset(void)
+template <typename StateType>
+Gpio<StateType>  :: ~Gpio()
 {
-    HAL_GPIO_WritePin(hwport, pin, GPIO_PIN_RESET);
+     this->periphraddress = NULL;
+     this->pin = 0xFFFF;
 }
-
-Gpio :: Gpio() :hwport(GPIOB),pin(GPIO_PIN_13)
+template <typename StateType>
+Gpio<StateType>  :: Gpio(GPIO_TypeDef *port,uint16_t portpin)
 {
-}
-
-Gpio :: ~Gpio()
-{
-     /*destructor does nothing as of now*/
-}
-
-
-Gpio :: Gpio(GPIO_TypeDef *port,uint16_t portpin) : hwport(port),pin(portpin)
-{
-    
+    this->periphraddress = port;
+    this->pin = portpin;
 } 
-
-void Gpio :: Toggle(void)
+template <typename StateType>
+void Gpio<StateType> ::setpin(void)
 {
-      HAL_GPIO_TogglePin(hwport, pin);
-     
+     this->pinstate = GPIO_PIN_SET;
+     write();
+}
+template <typename StateType>
+void Gpio<StateType> ::resetpin(void)
+{
+     this->pinstate = GPIO_PIN_RESET;
+     write();
 }
 
-Timer :: Timer()
+
+/*Timer implementation below as of now*/
+
+template <typename channel_t, typename counter_reg_t>
+Timer<channel_t,counter_reg_t> :: Timer(TIM_HandleTypeDef *timer, channel_t channelnumber)
+{
+    this->periphraddress = timer;
+    this->channelnumber = channelnumber;
+    this->dc = 0;
+    this->counterregistervalue = 0;
+
+}
+template <typename channel_t, typename counter_reg_t>
+void Timer<channel_t,counter_reg_t> :: setdutycycle(float *dutycycle)
+{
+    this->dc = *dutycycle;
+    this->counterregistervalue = (uint32_t)(this->dc * (this->periphraddress->Init.Period));
+    write();
+}
+template <typename channel_t, typename counter_reg_t>
+void Timer<channel_t,counter_reg_t> :: getdutycycle(float *dutycycle)
+{
+    this->read();
+
+    *dutycycle = (float)this->counterregistervalue / (float)this->periphraddress->Init.Period;
+}
+
+template <typename channel_t, typename counter_reg_t>
+void Timer<channel_t,counter_reg_t> :: init(void)
+{
+     this->dc = 0;
+     this->counterregistervalue = 0;
+}
+template <typename channel_t, typename counter_reg_t>
+void Timer<channel_t,counter_reg_t> :: uninit(void)
 {
 
 }
-
-Timer :: Timer(TIM_HandleTypeDef *htim,uint8_t channelnum) : hardwareinstance(htim),channel_num(channelnum)
+template <typename channel_t, typename counter_reg_t>
+void Timer<channel_t,counter_reg_t> :: read(void)
 {
-   
+   this->counterregistervalue = __HAL_TIM_GET_COMPARE(this->periphraddress, this->channelnumber);
+}
+template <typename channel_t, typename counter_reg_t>
+void Timer<channel_t,counter_reg_t> :: write(void)
+{
+    __HAL_TIM_SET_COMPARE(this->periphraddress, this->channelnumber, this->counterregistervalue);
+}
+template <typename channel_t, typename counter_reg_t>
+void Timer<channel_t,counter_reg_t> :: startpwm(void)
+{
+     HAL_TIM_PWM_Start(this->periphraddress, this->channelnumber); 
+    /* To avoid compiler warning*/
+     [[maybe_unused]] static bool moe = [this] ()->bool {
+        __HAL_TIM_MOE_ENABLE(this->periphraddress);
+        return true;
+     }();
 }
 
-Timer :: ~Timer()
-{
-    /*destructor does nothing as of now*/
-}
-
-void Timer :: Init(void)
-{
-    MX_TIM2_Init();
-    __HAL_TIM_SET_PRESCALER(hardwareinstance, 399);
-    __HAL_TIM_SET_AUTORELOAD(hardwareinstance, 9999);
-    HAL_TIM_GenerateEvent(hardwareinstance, TIM_EVENTSOURCE_UPDATE);
-}
-
-void Timer :: Uninit(void)
-{
-    /*As of now nothing*/
-}
-
-void Timer :: PwmSetDutyCycle(float dutycycle)
-{
-
-    __HAL_TIM_SET_COMPARE(hardwareinstance, channel_num, 5000);
-    
-    
-}
-
-void Timer :: RunTimer(void)
-{
-    
-    HAL_TIM_PWM_Start(hardwareinstance, channel_num);
-}
+template class Timer<uint32_t , uint32_t>;
+template class Gpio<GPIO_PinState>;
