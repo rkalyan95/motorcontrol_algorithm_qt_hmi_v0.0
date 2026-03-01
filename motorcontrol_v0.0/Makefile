@@ -22,7 +22,7 @@ TARGET = motorcontrol_v0.0
 # debug build?
 DEBUG = 1
 # optimization
-OPT = -Og
+OPT = -Os
 
 
 #######################################
@@ -70,6 +70,7 @@ Core/Src/syscalls.c
 CXX_SOURCES = \
 Core/Src/main.cpp \
 Core/Src/fsm.cpp \
+Core/Src/motor.cpp\
 
 # ASM sources
 ASM_SOURCES =  \

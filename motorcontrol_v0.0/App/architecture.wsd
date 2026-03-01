@@ -38,7 +38,7 @@ class IMotorDriver
     +virtual void get_fdbkcurrent(uint8_t phase , float *fdbkcurrent);
 }
 
-IMotorDriver o-- Peripheral : Aggregation
+IMotorDriver o-- IPeripheral : Aggregation
 IMotorDriver o-- Sensor : Aggregation
 
 class IHM16M1 
@@ -167,8 +167,8 @@ class Adc
        +void void getperiphaddress(periph_addr *ptr)
 }
 
-IPeripheral o-- Gpio : Aggregation
-IPeripheral o-- Timer : Aggregation
-IPeripheral o-- Adc : Aggregation
+IPeripheral <|-- Gpio : Generalisation
+IPeripheral <|-- Timer : Generalisation
+IPeripheral <|-- Adc : Generalisation
 
 @enduml

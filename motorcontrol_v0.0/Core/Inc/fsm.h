@@ -21,17 +21,25 @@ extern "C" {
 
 
 /*Use templates maybe*/
-template <typename T>
-class Peripheral
+
+class IPeripheral
 {
-    protected:
-        T *periphraddress;
+
     public:
+        uint32_t rawbuffer;
         virtual void init(void)=0;
         virtual void uninit(void)=0;
         virtual void read(void)=0;
         virtual void write(void)=0;
 };
+
+template <typename T>
+class Peripheral : public IPeripheral
+{
+    protected:
+        T *periphraddress;
+};
+
 
 template <typename Pinstate = GPIO_PinState>
 class Gpio : public Peripheral<GPIO_TypeDef>
@@ -42,10 +50,6 @@ class Gpio : public Peripheral<GPIO_TypeDef>
 
     public:
         Gpio(GPIO_TypeDef *port,uint16_t portpin);
-        void setstate(Pinstate nextstate);
-        Pinstate getstate(void);
-        void resetpin(void);
-        void setpin(void);
         void init(void)  override ;
         void uninit(void)  override ;
         void read (void) override;
@@ -57,18 +61,27 @@ template <typename channel_t = uint32_t , typename counter_reg_t = uint32_t>
 class Timer : public Peripheral<TIM_HandleTypeDef>
 {
     private:
-        float dc;
         channel_t channelnumber;
-        counter_reg_t counterregistervalue;
     public:
         Timer(TIM_HandleTypeDef *timer, channel_t channelnumber);
-        void getdutycycle(float *dutycycle);
-        void setdutycycle(float *dutycycle);
-        void startpwm(void);
         void init(void) override;
         void uninit(void) override;
         void read(void) override;
         void write(void) override;
+};
+
+template <typename channelnum_t=uint32_t , typename rawcount_t = uint16_t>
+class ADC : public Peripheral<ADC_HandleTypeDef>
+{
+    private:
+        channelnum_t channelnum;
+    public:
+        ADC(ADC_HandleTypeDef *adc,channelnum_t channelnum);
+        void init(void) override;
+        void uninit(void) override;
+        void read(void) override;
+        void write(void) override;
+
 };
 
 #endif /* __cplusplus */

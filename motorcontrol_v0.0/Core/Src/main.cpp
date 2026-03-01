@@ -32,7 +32,7 @@ extern "C" {
 
 // 2. Include your C++ logic
 #include "fsm.h"
-
+#include "motor.h"
 
 
 void SystemClock_Config(void);
@@ -40,7 +40,8 @@ void SystemClock_Config(void);
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-uint32_t my_reading[8];
+uint16_t my_reading[8];
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -77,6 +78,10 @@ Gpio EnablePhaseW(GPIOA ,GPIO_PIN_11);
 Timer timer1(&htim1, (uint32_t)TIM_CHANNEL_1);
 Timer timer2(&htim1, (uint32_t)TIM_CHANNEL_2);
 Timer timer3(&htim1, (uint32_t)TIM_CHANNEL_3);
+
+ADC    adc1(&hadc1, (uint32_t)ADC_CHANNEL_1);
+//Sensor mysensor(&adc1, 1, 0);
+
 /* USER CODE END 0 */
 
 /**
@@ -89,6 +94,11 @@ int main(void)
   /* USER CODE BEGIN 1 */
    bool ledstate  = 0;
    float dutycycle = 0.15;
+   IPeripheral *myled = &DefaultLed;
+   IPeripheral *mytimer1 = &timer1;
+   IPeripheral *mytimer2 = &timer2;
+   IPeripheral *mytimer3 = &timer3;
+   IPeripheral *myadc1 = &adc1;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -115,13 +125,24 @@ int main(void)
 //HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1); // PA8
 //HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2); // PA9
 //HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3); // PA10
-timer1.setdutycycle(&dutycycle);
-timer2.setdutycycle(&dutycycle);
-timer3.setdutycycle(&dutycycle);
+//timer1.setdutycycle(&dutycycle);
+//timer2.setdutycycle(&dutycycle);
+//timer3.setdutycycle(&dutycycle);
+ SystemClock_Config();
+mytimer1->rawbuffer = 100;
+mytimer2->rawbuffer = 120;
+mytimer3->rawbuffer = 190;
+mytimer1->write();
+mytimer2->write();
+mytimer3->write();
+mytimer1->init();
+mytimer2->init();
+mytimer3->init();
 
-timer1.startpwm();
-timer2.startpwm();
-timer3.startpwm();
+__HAL_TIM_MOE_ENABLE(&htim1);   //will be handled by motor class
+//timer1.startpwm();
+//timer2.startpwm();
+//timer3.startpwm();
 // 2. Enable the Main Output (Crucial for Advanced Timers)
 
 // 3. Keep the IHM16M1 board powered (Nucleo-P SMPS pin)
@@ -132,7 +153,7 @@ timer3.startpwm();
   /* USER CODE END Init */
    
   /* Configure the system clock */
-  SystemClock_Config();
+ 
 
   /* USER CODE BEGIN SysInit */
    
@@ -142,15 +163,17 @@ timer3.startpwm();
   
  
   /* USER CODE BEGIN 2 */
-  DefaultLed.init();  
+  myled->init();  
   
-
+   myadc1->init();
 /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   
   while (1) {
+
+   // my_reading[0] = mysensor.getraw();
     /*for(uint8_t i=0;i<8;i++)
     {
       HAL_ADC_Start(&hadc1);
@@ -175,17 +198,22 @@ timer3.startpwm();
           HAL_Delay(my_reading[i]);
     } 
 */
-
-    DefaultLed.setpin();
-    EnablePhaseU.setpin();
-    EnablePhaseV.setpin();
-    EnablePhaseW.setpin();
-    HAL_Delay(100);
-    DefaultLed.resetpin();
-    EnablePhaseU.resetpin();
-    EnablePhaseV.resetpin();
-    EnablePhaseW.resetpin();
-    HAL_Delay(100);
+    myled->rawbuffer = 1;
+    myled->write();
+    //EnablePhaseU.setpin();
+    //EnablePhaseV.setpin();
+    //EnablePhaseW.setpin();
+    myadc1->init();
+    myadc1->read();
+    myadc1->uninit();
+    HAL_Delay(myadc1->rawbuffer);
+    myled->rawbuffer = 0;
+    myled->write();
+    //EnablePhaseU.resetpin();
+    //EnablePhaseV.resetpin();
+    //EnablePhaseW.resetpin();
+    HAL_Delay(myadc1->rawbuffer);
+    
   }
 
   /* USER CODE END 3 */

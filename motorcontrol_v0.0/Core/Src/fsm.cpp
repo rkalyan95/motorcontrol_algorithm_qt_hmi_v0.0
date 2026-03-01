@@ -11,17 +11,7 @@ void Gpio<StateType> :: init(void)
 {
     
 }
-template <typename StateType>
-void Gpio<StateType>  :: setstate(StateType nextstate)
-{
-    this->pinstate = nextstate;
-}
-template <typename StateType>
-StateType Gpio<StateType>  :: getstate(void)
-{
-    read();
-    return this->pinstate;
-}
+
 template <typename StateType>
 void Gpio<StateType>  :: uninit(void)
 {
@@ -30,18 +20,21 @@ void Gpio<StateType>  :: uninit(void)
 template <typename StateType>
 void Gpio<StateType>  :: write(void)
 {
-    HAL_GPIO_WritePin(this->periphraddress, this->pin, this->pinstate);
+    
+    HAL_GPIO_WritePin(this->periphraddress, this->pin, (this->rawbuffer > 0) ? GPIO_PIN_SET : GPIO_PIN_RESET);
 }
 template <typename StateType>
 void Gpio<StateType>  :: read(void)
 {
-    pinstate = HAL_GPIO_ReadPin(this->periphraddress, this->pin);
+     this->rawbuffer = HAL_GPIO_ReadPin(this->periphraddress, this->pin);
+     
 }
+
 template <typename StateType>
 Gpio<StateType>  :: ~Gpio()
 {
-     this->periphraddress = NULL;
-     this->pin = 0xFFFF;
+     this->periphraddress = nullptr;
+     
 }
 template <typename StateType>
 Gpio<StateType>  :: Gpio(GPIO_TypeDef *port,uint16_t portpin)
@@ -49,18 +42,7 @@ Gpio<StateType>  :: Gpio(GPIO_TypeDef *port,uint16_t portpin)
     this->periphraddress = port;
     this->pin = portpin;
 } 
-template <typename StateType>
-void Gpio<StateType> ::setpin(void)
-{
-     this->pinstate = GPIO_PIN_SET;
-     write();
-}
-template <typename StateType>
-void Gpio<StateType> ::resetpin(void)
-{
-     this->pinstate = GPIO_PIN_RESET;
-     write();
-}
+
 
 
 /*Timer implementation below as of now*/
@@ -70,30 +52,16 @@ Timer<channel_t,counter_reg_t> :: Timer(TIM_HandleTypeDef *timer, channel_t chan
 {
     this->periphraddress = timer;
     this->channelnumber = channelnumber;
-    this->dc = 0;
-    this->counterregistervalue = 0;
+    this->rawbuffer = 0;
 
 }
-template <typename channel_t, typename counter_reg_t>
-void Timer<channel_t,counter_reg_t> :: setdutycycle(float *dutycycle)
-{
-    this->dc = *dutycycle;
-    this->counterregistervalue = (uint32_t)(this->dc * (this->periphraddress->Init.Period));
-    write();
-}
-template <typename channel_t, typename counter_reg_t>
-void Timer<channel_t,counter_reg_t> :: getdutycycle(float *dutycycle)
-{
-    this->read();
 
-    *dutycycle = (float)this->counterregistervalue / (float)this->periphraddress->Init.Period;
-}
 
 template <typename channel_t, typename counter_reg_t>
 void Timer<channel_t,counter_reg_t> :: init(void)
 {
-     this->dc = 0;
-     this->counterregistervalue = 0;
+    HAL_TIM_PWM_Start(this->periphraddress, this->channelnumber);
+
 }
 template <typename channel_t, typename counter_reg_t>
 void Timer<channel_t,counter_reg_t> :: uninit(void)
@@ -103,23 +71,61 @@ void Timer<channel_t,counter_reg_t> :: uninit(void)
 template <typename channel_t, typename counter_reg_t>
 void Timer<channel_t,counter_reg_t> :: read(void)
 {
-   this->counterregistervalue = __HAL_TIM_GET_COMPARE(this->periphraddress, this->channelnumber);
+   this->rawbuffer = __HAL_TIM_GET_COMPARE(this->periphraddress, this->channelnumber);
 }
 template <typename channel_t, typename counter_reg_t>
 void Timer<channel_t,counter_reg_t> :: write(void)
 {
-    __HAL_TIM_SET_COMPARE(this->periphraddress, this->channelnumber, this->counterregistervalue);
-}
-template <typename channel_t, typename counter_reg_t>
-void Timer<channel_t,counter_reg_t> :: startpwm(void)
-{
-     HAL_TIM_PWM_Start(this->periphraddress, this->channelnumber); 
-    /* To avoid compiler warning*/
-     [[maybe_unused]] static bool moe = [this] ()->bool {
-        __HAL_TIM_MOE_ENABLE(this->periphraddress);
-        return true;
-     }();
+    __HAL_TIM_SET_COMPARE(this->periphraddress, this->channelnumber, this->rawbuffer);
 }
 
+
+
+/* ADC Class impleementation here below */
+
+
+template <typename channelnum_t, typename rawcount_t>
+void ADC<channelnum_t,rawcount_t> :: init(void)
+{
+     HAL_ADC_Start(this->periphraddress);
+}
+
+template <typename channelnum_t, typename rawcount_t>
+void ADC<channelnum_t,rawcount_t> :: uninit(void)
+{
+    HAL_ADC_Stop(this->periphraddress);
+}
+
+template <typename channelnum_t, typename rawcount_t>
+void ADC<channelnum_t,rawcount_t> :: read(void)
+{
+    
+    if (HAL_ADC_PollForConversion(this->periphraddress, 10) == HAL_OK) 
+        {
+           this->rawbuffer = HAL_ADC_GetValue(this->periphraddress);
+        }
+        else
+        {
+          this->rawbuffer = 0;
+        }
+    
+}
+
+template <typename channelnum_t, typename rawcount_t>
+void ADC<channelnum_t,rawcount_t> :: write(void)
+{
+
+}
+
+template <typename channelnum_t, typename rawcount_t>
+ADC<channelnum_t,rawcount_t>::ADC(ADC_HandleTypeDef *adc,channelnum_t channelnum)
+{
+    this->periphraddress = adc;
+    this->channelnum = channelnum;
+    this->rawbuffer = 0;
+}
+
+
+template class ADC<uint32_t , uint16_t>;
 template class Timer<uint32_t , uint32_t>;
 template class Gpio<GPIO_PinState>;
