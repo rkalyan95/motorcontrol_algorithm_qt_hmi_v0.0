@@ -80,7 +80,7 @@ Timer timer2(&htim1, (uint32_t)TIM_CHANNEL_2);
 Timer timer3(&htim1, (uint32_t)TIM_CHANNEL_3);
 
 ADC    adc1(&hadc1, (uint32_t)ADC_CHANNEL_1);
-//Sensor mysensor(&adc1, 1, 0);
+Sensor mysensor(&adc1, 1, 0);
 
 /* USER CODE END 0 */
 
@@ -163,7 +163,7 @@ __HAL_TIM_MOE_ENABLE(&htim1);   //will be handled by motor class
   
  
   /* USER CODE BEGIN 2 */
-  myled->init();  
+   myled->init();  
   
    myadc1->init();
 /* USER CODE END 2 */
@@ -172,48 +172,18 @@ __HAL_TIM_MOE_ENABLE(&htim1);   //will be handled by motor class
   /* USER CODE BEGIN WHILE */
   
   while (1) {
-
-   // my_reading[0] = mysensor.getraw();
-    /*for(uint8_t i=0;i<8;i++)
-    {
-      HAL_ADC_Start(&hadc1);
-      if (HAL_ADC_PollForConversion(&hadc1, 10) == HAL_OK) 
-        {
-          my_reading[i]  = HAL_ADC_GetValue(&hadc1);
-        }
-        else
-        {
-          my_reading[i] = 0;
-        }
-
-        HAL_ADC_Stop(&hadc1); // Optional: Resets state for the next Rank
-    }
-
-    for(uint8_t i=0;i<8;i++)
-    {
-          DefaultLed.Toggle();
-          EnablePhaseU.Toggle();
-          EnablePhaseV.Toggle();
-          EnablePhaseW.Toggle();
-          HAL_Delay(my_reading[i]);
-    } 
-*/
     myled->rawbuffer = 1;
     myled->write();
-    //EnablePhaseU.setpin();
-    //EnablePhaseV.setpin();
-    //EnablePhaseW.setpin();
-    myadc1->init();
-    myadc1->read();
-    myadc1->uninit();
-    HAL_Delay(myadc1->rawbuffer);
+    mysensor.init();
+    mysensor.read();
+    mysensor.uninit();
+    HAL_Delay(mysensor.sensroraw);
     myled->rawbuffer = 0;
     myled->write();
-    //EnablePhaseU.resetpin();
-    //EnablePhaseV.resetpin();
-    //EnablePhaseW.resetpin();
-    HAL_Delay(myadc1->rawbuffer);
-    
+    mysensor.init();
+    mysensor.read();
+    mysensor.uninit();
+    HAL_Delay(mysensor.sensroraw);
   }
 
   /* USER CODE END 3 */

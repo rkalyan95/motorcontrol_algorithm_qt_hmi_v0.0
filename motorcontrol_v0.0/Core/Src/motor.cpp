@@ -6,21 +6,36 @@ extern "C" {
 
 #include "motor.h"
 
-/*
-Sensor :: Sensor(Peripheral *periph, float sensorgain, float sensoroffset)
+
+Sensor :: Sensor(IPeripheral *periph, float sensorgain, float sensoroffset)
 {
-    this->periph = periph;
-    this->sensorgain = sensorgain;
-    this->sensoroffset = sensoroffset;
+    if(periph!=nullptr && sensorgain!=0)
+    {
+        this->periph = periph;
+        this->sensorgain = sensorgain;
+        this->sensoroffset = sensoroffset;
+    }
+
 }
 
 void Sensor ::init(void)
 {
-    
+    if(this->periph==nullptr) 
+    {
+        return;
+    }
+    this->periph->init();
 }
 void Sensor :: read(void)
 {
-    this->sensroraw = this->periph->getrawvalues();
+
+    if(this->periph==nullptr) 
+    {
+        return;
+    }
+    this->periph->read();
+    this->sensroraw = this->periph->rawbuffer;
+    this->sensorphy = this->sensorgain * this->sensroraw + this->sensoroffset;
 }
 void Sensor ::write(void)
 {
@@ -28,17 +43,6 @@ void Sensor ::write(void)
 }
 void Sensor ::uninit(void)
 {
-    
+    this->periph->uninit();
+    this->periph = nullptr;
 }
-float Sensor ::getphy(void)
-{
-    
-    this->sensorphy = this->sensorgain * this->sensroraw + this->sensoroffset;
-    return this->sensorphy;
-}
-uint32_t Sensor :: getraw(void)
-{
-    read();
-    return this->sensroraw;
-}
-*/

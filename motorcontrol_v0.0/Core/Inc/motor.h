@@ -20,26 +20,25 @@ extern "C" {
 #ifdef __cplusplus
 
 #include "fsm.h"
-/*
+
 class Sensor
 {
     private:
-        Peripheral *periph;
+        IPeripheral *periph;
         float sensorgain;
         float sensoroffset;
+
+    public:
         uint32_t sensroraw;
         float sensorphy;
-    public:
-        Sensor(Peripheral *periph, float sensorgain, float sensoroffset);
+        Sensor(IPeripheral *periph, float sensorgain, float sensoroffset);
         void read(void);
         void init(void);
         void write(void);
         void uninit(void);
-        float getphy(void);
-        uint32_t getraw(void);
 
 };
-*/
+
 #endif
 
 #endif /* __MOTOR_H */
