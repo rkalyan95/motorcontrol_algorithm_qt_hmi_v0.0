@@ -57,7 +57,7 @@ protected:
 	// Using std::array to store multiple timer/gpio channels for U, V, W
 	std::array<IPeripheral*, 3>	timer_periphs;	// Pointers to Phase U, V, W Timers
 	std::array<IPeripheral*, 3>	gpio_periphs;	// Pointers to Phase U, V, W EN Pins
-	std::array<Sensor*, 7>		generic_sensors;
+	std::array<Sensor*, 8>		generic_sensors;
 
 public:
 	virtual ~IMotorDriver() = default;

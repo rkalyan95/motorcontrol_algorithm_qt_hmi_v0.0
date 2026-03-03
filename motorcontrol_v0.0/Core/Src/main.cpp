@@ -71,18 +71,7 @@ void SystemClock_Config(void);
 
 Gpio DefaultLed(led_builtin_nucleo_GPIO_Port ,GPIO_PIN_13);
 IHM16M1 hbridge;
-/*Gpio DefaultLed(led_builtin_nucleo_GPIO_Port ,GPIO_PIN_13);
-Gpio EnablePhaseU(GPIOC ,GPIO_PIN_8); 
-Gpio EnablePhaseV(GPIOB ,GPIO_PIN_6);
-Gpio EnablePhaseW(GPIOA ,GPIO_PIN_11);
 
-Timer timer1(&htim1, (uint32_t)TIM_CHANNEL_1);
-Timer timer2(&htim1, (uint32_t)TIM_CHANNEL_2);
-Timer timer3(&htim1, (uint32_t)TIM_CHANNEL_3);
-
-ADC    adc1(&hadc1, (uint32_t)ADC_CHANNEL_1);
-Sensor mysensor(&adc1, 1, 0);
-*/ 
 /* USER CODE END 0 */
 
 /**
@@ -93,15 +82,11 @@ int main(void)
 {
    
   /* USER CODE BEGIN 1 */
-   bool ledstate  = 0;
-   float dutycycle = 0.15;
+  
+   float vbus = 0.0f;
    IMotorDriver *mymotordriver = &hbridge;
-   
    IPeripheral *myled = &DefaultLed;
-  // IPeripheral *mytimer1 = &timer1;
-//   IPeripheral *mytimer2 = &timer2;
-  // IPeripheral *mytimer3 = &timer3;
-  // IPeripheral *myadc1 = &adc1;
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -114,41 +99,15 @@ int main(void)
   /* USER CODE BEGIN Init */
 
  SystemClock_Config();
- hbridge.init();
- // mytimer1->rawbuffer = 100;
- // mytimer2->rawbuffer = 120;
- // mytimer3->rawbuffer = 190;
- // mytimer1->write();
- // mytimer2->write();
- // mytimer3->write();
- // mytimer1->init();
- // mytimer2->init();
- // mytimer3->init();
+  hbridge.init();
   mymotordriver->set_pwm_duty_cycle(0, 0.3);
   mymotordriver->set_pwm_duty_cycle(1, 0.3);
   mymotordriver->set_pwm_duty_cycle(2, 0.3);
-  // mymotor.set_pwm_duty_cycle(1, 0.3);
-  // mymotor.set_pwm_duty_cycle(2, 0.3);
   __HAL_TIM_MOE_ENABLE(&htim1);   //will be handled by motor class
 
   /* USER CODE END Init */
    
-  /* Configure the system clock */
- 
 
-  /* USER CODE BEGIN SysInit */
-   
-  /* USER CODE END SysInit */
-
-  /* Initialize all configured peripherals */
-  
- 
-  /* USER CODE BEGIN 2 */
-  // myled->init();  
-  // myadc1->init();
-/* USER CODE END 2 */
-
-  /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   
   while (1) {
@@ -157,19 +116,19 @@ int main(void)
     mymotordriver->enable_pwm_phase(0);
     mymotordriver->enable_pwm_phase(1);
     mymotordriver->enable_pwm_phase(2);
-  //  mysensor.init();
-  //  mysensor.read();
-  //  mysensor.uninit();
-    HAL_Delay(200);
+    mymotordriver->get_vbus(&vbus);
+
+    HAL_Delay(400+(uint32_t)vbus);
+    
     myled->rawbuffer = 0;
     myled->write();
     mymotordriver->disable_pwm_phase(0);
     mymotordriver->disable_pwm_phase(1);
     mymotordriver->disable_pwm_phase(2);
-   // mysensor.init();
-  //  mysensor.read();
-   // mysensor.uninit();
-    HAL_Delay(200);
+    mymotordriver->get_vbus(&vbus);
+
+    HAL_Delay(400+(uint32_t)vbus);
+
   }
 
   /* USER CODE END 3 */

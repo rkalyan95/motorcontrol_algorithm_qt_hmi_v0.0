@@ -16,7 +16,7 @@
 '/
 
 
-class IMotorDriver
+class IMotorDriver #Yellow
 {
     #pwm_phase_x_duty[3] : float
     #phase_bot_x_enable[3] : bool
@@ -41,7 +41,7 @@ class IMotorDriver
 IMotorDriver o-- IPeripheral : Aggregation
 IMotorDriver o-- Sensor : Aggregation
 
-class IHM16M1 
+class IHM16M1 #Yellow
 {
     +void set_pwm_duty_cycle(uint8_t phase , float duty)
     +void get_pwm_duty_cycle(uint8_t phase , float *duty)
@@ -54,7 +54,7 @@ class IHM16M1
 IMotorDriver <|-- IHM16M1 : IHM16M1 Implements IMotorDriver
 
 
-class Motor 
+class Motor #Red
 {
     #IMotorDriver *hbridge;
     #connectiontopolgy : star delta
@@ -78,7 +78,7 @@ class Motor
 }
 
 
-class BLDC
+class BLDC #Red
 {
     +void set_motor_speed(float speed);
     +void get_motor_speed(float *speed);
@@ -91,7 +91,7 @@ class BLDC
 Motor o-- IMotorDriver : Aggregation
 Motor <|-- BLDC : Generalization
 
-class Sensor
+class Sensor #LightGreen
 {
     -IPeripheral *periph;
     -Sensor Gain
@@ -109,7 +109,7 @@ class Sensor
 
 Sensor o-- IPeripheral : Aggregation
 
-class Diagonostic 
+class Diagonostic #DDA0DD
 {
     -IPeripheral *periph;
     +diagonstic_id;
@@ -121,7 +121,7 @@ class Diagonostic
 
 Diagonostic o-- IPeripheral : Aggregation
 
-class IPeripheral 
+class IPeripheral #LightGreen
 {
        #base_address *periphaddress;
        +virtual void init()
@@ -131,7 +131,7 @@ class IPeripheral
        +virtual void getperiphaddress(periph_addr *ptr)
 }
 
-class Gpio 
+class Gpio #LightGreen
 {
        -pinstate : bool
        -pinnumber : uint16_t
@@ -143,7 +143,7 @@ class Gpio
        +void void getperiphaddress(periph_addr *ptr)
 }
 
-class Timer
+class Timer #LightGreen
 {
        -frequency :  float
        -dutycycle : float
@@ -156,7 +156,7 @@ class Timer
        +void void getperiphaddress(periph_addr *ptr)
 }
 
-class Adc
+class Adc #LightGreen
 {
        -channelnumber : uint8_t
        -rawcount : uint16_t

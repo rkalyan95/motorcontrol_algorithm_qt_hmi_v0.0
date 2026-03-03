@@ -12,30 +12,34 @@ Gpio EnablePhaseU(GPIOC ,GPIO_PIN_8);
 Gpio EnablePhaseV(GPIOB ,GPIO_PIN_6);
 Gpio EnablePhaseW(GPIOC ,GPIO_PIN_7);
 
-Timer timer1(&htim1, (uint32_t)TIM_CHANNEL_1);
-Timer timer2(&htim1, (uint32_t)TIM_CHANNEL_2);
-Timer timer3(&htim1, (uint32_t)TIM_CHANNEL_3);
+Timer PwmPhaseU(&htim1, (uint32_t)TIM_CHANNEL_1);
+Timer PwmPhaseV(&htim1, (uint32_t)TIM_CHANNEL_2);
+Timer PwmPhaseW(&htim1, (uint32_t)TIM_CHANNEL_3);
 
-ADC adc1(&hadc1, (uint32_t)ADC_CHANNEL_1);
-ADC adc2(&hadc1, (uint32_t)ADC_CHANNEL_2);
-ADC adc3(&hadc1, (uint32_t)ADC_CHANNEL_3);
-ADC adc4(&hadc1, (uint32_t)ADC_CHANNEL_4);
-ADC adc5(&hadc1, (uint32_t)ADC_CHANNEL_5);
-ADC adc6(&hadc1, (uint32_t)ADC_CHANNEL_6);
-ADC adc7(&hadc1, (uint32_t)ADC_CHANNEL_7);
-ADC adc8(&hadc1, (uint32_t)ADC_CHANNEL_8);
+ADC VBUS(&hadc1, (uint32_t)ADC_CHANNEL_1);
+ADC NTC(&hadc1, (uint32_t)ADC_CHANNEL_2);
+ADC CURRFDBK_2(&hadc1, (uint32_t)ADC_CHANNEL_3);
+ADC CURRFDBK_3(&hadc1, (uint32_t)ADC_CHANNEL_4);
+ADC BEMF_PHA_V(&hadc1, (uint32_t)ADC_CHANNEL_5);
+ADC BEMF_PHA_U(&hadc1, (uint32_t)ADC_CHANNEL_6);
+ADC BEMF_PHA_W(&hadc1, (uint32_t)ADC_CHANNEL_7);
+ADC CURRFDBK_1(&hadc1, (uint32_t)ADC_CHANNEL_8);
 
-Sensor sens1(&adc1, 1, 0);
-Sensor sens2(&adc2, 1, 0);
-Sensor sens3(&adc3, 1, 0);
-Sensor sens4(&adc4, 1, 0);
-Sensor sens5(&adc5, 1, 0);
-Sensor sens6(&adc6, 1, 0);
-Sensor sens7(&adc7, 1, 0);
+Sensor sense_vbus(&VBUS, 1, 0);
+Sensor sense_ntc(&NTC, 1, 0);
+
+Sensor sense_curr_fdbk1(&CURRFDBK_1, 1, 0);
+Sensor sense_curr_fdbk2(&CURRFDBK_2, 1, 0);
+Sensor sense_curr_fdbk3(&CURRFDBK_3, 1, 0);
+
+Sensor sense_bemf_v(&BEMF_PHA_V, 1, 0);
+Sensor sense_bemf_u(&BEMF_PHA_U, 1, 0);
+Sensor sense_bemf_w(&BEMF_PHA_W, 1, 0);
+
 
 std::array<IPeripheral*, 3> motortimers
 {
-    &timer1, &timer2, &timer3
+    &PwmPhaseU, &PwmPhaseV, &PwmPhaseW
 };
 
 std::array<IPeripheral*, 3> motorgpio
@@ -43,10 +47,23 @@ std::array<IPeripheral*, 3> motorgpio
     &EnablePhaseU, &EnablePhaseV, &EnablePhaseW
 };
 
-std::array<Sensor*,7> motorsensors
+std::array<Sensor*,8> motorsensors
 {
-    &sens1, &sens2, &sens3, &sens4, &sens5, &sens6, &sens7
+    &sense_vbus, &sense_ntc, &sense_curr_fdbk1, &sense_curr_fdbk2, &sense_curr_fdbk3, &sense_bemf_v, &sense_bemf_u , &sense_bemf_w
 };
+
+enum class sensor_id : uint8_t
+{
+     VBUS_SENSOR_ID = 0,
+     NTC_SENSOR_ID = 1,
+     CURRFDBK_1_SENSOR_ID = 2,
+     CURRFDBK_2_SENSOR_ID = 3,
+     CURRFDBK_3_SENSOR_ID = 4,
+     BEMF_V_SENSOR_ID = 5,
+     BEMF_U_SENSOR_ID = 6,
+     BEMF_W_SENSOR_ID = 7
+};
+
 
 Sensor :: Sensor(IPeripheral *periph, float sensorgain, float sensoroffset)
 {
@@ -85,7 +102,6 @@ void Sensor ::write(void)
 void Sensor ::uninit(void)
 {
     this->periph->uninit();
-    this->periph = nullptr;
 }
 
 /*Ihm16m1 here*/
@@ -96,7 +112,6 @@ IHM16M1 :: IHM16M1()
     timer_periphs = motortimers;
     gpio_periphs = motorgpio;
     generic_sensors = motorsensors;
-
 
 }
 
@@ -134,18 +149,7 @@ void IHM16M1 :: get_pwm_duty_cycle(uint8_t phase, float *duty)
 {
 
 }						
-void IHM16M1 :: get_temperature(float *temperature)						
-{
 
-}
-void IHM16M1 :: get_backemf(uint8_t phase, float *bemf)
-{
-
-}			
-void IHM16M1 :: get_fdbkcurrent(uint8_t phase, float *fdbkcurrent)
-{
-
-}	
 void IHM16M1 :: init()
 {
     for(auto &timer : timer_periphs)
@@ -154,6 +158,7 @@ void IHM16M1 :: init()
         {
             timer->rawbuffer = 0;
             timer->write();
+            timer->init();
         }
 
     }
@@ -176,9 +181,82 @@ void IHM16M1 :: init()
 }		
 void IHM16M1 :: get_vbus(float *vbus)
 {
+    uint8_t index = static_cast<uint8_t>(sensor_id::VBUS_SENSOR_ID);
+    if(generic_sensors[index]==nullptr)
+    {
+        return;
+    }
+    this->generic_sensors[index]->init();
+    this->generic_sensors[index]->read();
+    this->generic_sensors[index]->uninit();
+   *vbus = this->generic_sensors[index]->sensorphy;
     
 }
 
+void IHM16M1 :: get_temperature(float *temperature)						
+{
+    uint8_t index = static_cast<uint8_t>(sensor_id::NTC_SENSOR_ID);
+    if(generic_sensors[index]==nullptr)
+    {
+        return;
+    }   
+    generic_sensors[index]->init(); 
+    generic_sensors[index]->read();
+    generic_sensors[index]->uninit(); 
+    *temperature = generic_sensors[index]->sensorphy;
+}
+void IHM16M1 :: get_backemf(uint8_t phase, float *bemf)
+{
+     static constexpr std::array<sensor_id,3> sensoridmap
+     {
+        sensor_id::BEMF_U_SENSOR_ID,
+        sensor_id::BEMF_V_SENSOR_ID,
+        sensor_id::BEMF_W_SENSOR_ID
+     };
+
+     if(phase>2)
+     {
+        return;
+     }
+
+     uint8_t index = static_cast<uint8_t>(sensoridmap[phase]);
+
+     if(generic_sensors[index]==nullptr)
+     {
+        return;
+     }
+     generic_sensors[index]->init(); 
+     generic_sensors[index]->read();
+     generic_sensors[index]->uninit(); 
+     *bemf = generic_sensors[index]->sensorphy;
+
+
+}			
+void IHM16M1 :: get_fdbkcurrent(uint8_t phase, float *fdbkcurrent)
+{
+     static constexpr std::array<sensor_id,3> feedbackcurrmap
+     {
+        sensor_id::CURRFDBK_1_SENSOR_ID,
+        sensor_id::CURRFDBK_2_SENSOR_ID,
+        sensor_id::CURRFDBK_3_SENSOR_ID
+     };
+
+     if(phase>2)
+     {
+        return;
+     }
+
+     uint8_t index = static_cast<uint8_t>(feedbackcurrmap[phase]);
+
+     if(generic_sensors[index]==nullptr)
+     {
+        return;
+     }
+     generic_sensors[index]->init();
+     generic_sensors[index]->read();
+     generic_sensors[index]->uninit();
+     *fdbkcurrent = generic_sensors[index]->sensorphy;
+}	
 
 
 IHM16M1 :: ~IHM16M1()
