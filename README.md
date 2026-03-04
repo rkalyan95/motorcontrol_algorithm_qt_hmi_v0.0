@@ -25,7 +25,9 @@ I choose this controller because it has advanced timer capability which can give
 3. shall work via UART to communicate with the device : we will use FTDI in the inital phases.
 4. raw values will be transmitted to the UI , UI should convert them to physical values and handle the processing of data
 
+# logic analyser screenshot of the phase U V and W top alongwith Bot U V W Enable pins 
 
+<img src="images/pwmswitching_analyser.png" alt= "logic analyser" width="500"/>
    *Note : this does not need to be perfect , but it needs to be working*
    
    *Note : this will take time , please do not expect this to be an easy feat*

@@ -83,8 +83,10 @@ int main(void)
    
   /* USER CODE BEGIN 1 */
   
-   float vbus = 0.0f;
+   float speed = 0.0f;
    IMotorDriver *mymotordriver = &hbridge;
+   BLDC mybldc(mymotordriver);
+   IMotor *mymotor = &mybldc;
    IPeripheral *myled = &DefaultLed;
 
   /* USER CODE END 1 */
@@ -98,37 +100,25 @@ int main(void)
   MX_ADC1_Init();
   /* USER CODE BEGIN Init */
 
- SystemClock_Config();
+  SystemClock_Config();
   hbridge.init();
-  mymotordriver->set_pwm_duty_cycle(0, 0.3);
-  mymotordriver->set_pwm_duty_cycle(1, 0.3);
-  mymotordriver->set_pwm_duty_cycle(2, 0.3);
+  mymotor->commutation_stage = 0;
+  mymotor->set_motor_speed(0.0f);
+  
   __HAL_TIM_MOE_ENABLE(&htim1);   //will be handled by motor class
 
   /* USER CODE END Init */
    
-
+   
   /* USER CODE BEGIN WHILE */
-  
+   myled->rawbuffer = 0;
+   speed = 500.0f;
   while (1) {
-    myled->rawbuffer = 1;
-    myled->write();
-    mymotordriver->enable_pwm_phase(0);
-    mymotordriver->enable_pwm_phase(1);
-    mymotordriver->enable_pwm_phase(2);
-    mymotordriver->get_vbus(&vbus);
-
-    HAL_Delay(400+(uint32_t)vbus);
     
-    myled->rawbuffer = 0;
+    myled->rawbuffer = !myled->rawbuffer;
     myled->write();
-    mymotordriver->disable_pwm_phase(0);
-    mymotordriver->disable_pwm_phase(1);
-    mymotordriver->disable_pwm_phase(2);
-    mymotordriver->get_vbus(&vbus);
-
-    HAL_Delay(400+(uint32_t)vbus);
-
+    mymotor->set_motor_speed(speed);
+    HAL_Delay(20);
   }
 
   /* USER CODE END 3 */
