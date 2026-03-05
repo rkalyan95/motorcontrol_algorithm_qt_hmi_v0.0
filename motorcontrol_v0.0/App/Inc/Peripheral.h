@@ -1,9 +1,9 @@
-#ifndef __FSM_H
-#define __FSM_H
+#ifndef __PERIPHERAL_H
+#define __PERIPHERAL_H
 
 extern "C" {
     #include "stdint.h"
-    #include "gpio.h"
+    #include <gpio.h>
 }
 
 #ifdef __cplusplus

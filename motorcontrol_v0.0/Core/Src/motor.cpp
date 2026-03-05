@@ -5,7 +5,7 @@ extern "C" {
 }
 
 #include "motor.h"
-#include "fsm.h"
+
 
 
 Gpio EnablePhaseU(GPIOC ,GPIO_PIN_8); 

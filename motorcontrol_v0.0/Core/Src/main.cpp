@@ -31,7 +31,6 @@ extern "C" {
 }
 
 // 2. Include your C++ logic
-#include "fsm.h"
 #include "motor.h"
 
 

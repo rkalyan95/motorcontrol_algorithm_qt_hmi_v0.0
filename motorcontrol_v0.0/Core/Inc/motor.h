@@ -19,7 +19,8 @@ extern "C" {
  */
 #ifdef __cplusplus
 
-#include "fsm.h"
+#include <Peripheral.h>
+
 #include <array>
 
 class Sensor

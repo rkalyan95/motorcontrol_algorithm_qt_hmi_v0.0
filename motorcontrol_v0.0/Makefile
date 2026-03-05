@@ -69,7 +69,9 @@ Core/Src/syscalls.c
 
 CXX_SOURCES = \
 Core/Src/main.cpp \
-Core/Src/fsm.cpp \
+App/Src/stm_adc.cpp \
+App/Src/stm_gpio.cpp \
+App/Src/stm_timer.cpp \
 Core/Src/motor.cpp\
 
 # ASM sources
@@ -134,6 +136,7 @@ AS_INCLUDES =
 # C includes
 C_INCLUDES =  \
 -ICore/Inc \
+-IApp/Inc \
 -IDrivers/STM32L4xx_HAL_Driver/Inc \
 -IDrivers/STM32L4xx_HAL_Driver/Inc/Legacy \
 -IDrivers/CMSIS/Device/ST/STM32L4xx/Include \
