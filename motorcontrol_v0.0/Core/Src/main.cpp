@@ -31,8 +31,9 @@ extern "C" {
 }
 
 // 2. Include your C++ logic
-#include "motor.h"
-
+#include <IMotordriver.h>
+#include <IMotor.h>
+#include <Peripheral.h>
 
 void SystemClock_Config(void);
 /* USER CODE END Includes */

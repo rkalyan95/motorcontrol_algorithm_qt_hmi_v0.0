@@ -72,6 +72,9 @@ Core/Src/main.cpp \
 App/Src/stm_adc.cpp \
 App/Src/stm_gpio.cpp \
 App/Src/stm_timer.cpp \
+App/Src/Sensor.cpp \
+App/Src/Bldc.cpp \
+App/Src/ihm16m1.cpp \
 Core/Src/motor.cpp\
 
 # ASM sources
