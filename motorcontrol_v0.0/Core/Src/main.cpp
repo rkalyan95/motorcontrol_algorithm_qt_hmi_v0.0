@@ -107,21 +107,24 @@ int main(void)
   // HAL_Delay(500);
    powerstage->rawbuffer = 1;
    powerstage->write();
+   mymotor->shutdown_all();
+   
   // speed = 500.0f;
 __HAL_TIM_MOE_ENABLE(&htim1);
+uint32_t delayms = 50;
 
+mymotor->start_motor_commutation(0, 0.30f);
+HAL_Delay(100); // Let the rotor align to Step 0
 while(1) {
     myled->rawbuffer = !myled->rawbuffer;
     myled->write();
     //mymotor->set_motor_speed(speed);
-   mymotor->start_motor_commutation(commutation_stage,0.90f);
-    commutation_stage++;
-    if(commutation_stage==6)
+    for(uint8_t step = 0;step<6;step++)
     {
-         commutation_stage = 0;
-     }
-    HAL_Delay(5);
-   
+      mymotor->start_motor_commutation(step,0.65f);
+      HAL_Delay(delayms);
+    }
+
 }
 
   /* USER CODE END 3 */

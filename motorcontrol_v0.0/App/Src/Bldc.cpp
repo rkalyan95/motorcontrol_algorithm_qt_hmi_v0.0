@@ -152,53 +152,44 @@ void BLDC::start_motor_commutation(uint8_t current_stage , float duty)
     {
         
         this->commutation_stage = current_stage;
-        
+
         //implement 6 switch here A-B , whatever you wrote in notebook with 20% dutycycle
         switch(current_stage)
         {
             case 0://U-V
                 //W floating
                 hbridge->disable_pwm_phase(2);          //W phase floating
+                hbridge->set_pwm_duty_cycle(2,0.0f);   //INVU set to PWM
+
                 hbridge->enable_pwm_phase(1);     //ENV set to 1
                 hbridge->enable_pwm_phase(0);           //ENU set to 1
-
-                
                 hbridge->set_pwm_duty_cycle(0,duty);   //INU set to PWM
-                hbridge->set_pwm_duty_cycle(2,0.0f);   //INVU set to PWM
                 hbridge->set_pwm_duty_cycle(1,0.0);   //INV set to PWM 0%
                 this->floating_phase = 2;
                 
                 break;
             case 1:  //U-W
                 //V floating
+                hbridge->set_pwm_duty_cycle(1, 0.0f); // Set to neutral/safe
                 hbridge->disable_pwm_phase(1);          //V phase floating  
                 
 
                 hbridge->enable_pwm_phase(0);           //ENU set to 1
-                
-                
                 hbridge->enable_pwm_phase(2);     //ENW set to 1
                 hbridge->set_pwm_duty_cycle(0,duty);   //INVU set to PWM
-                hbridge->set_pwm_duty_cycle(1,0.0f);   //INVU set to PWM
-                hbridge->set_pwm_duty_cycle(2,0.0);   //INW set to PWM 0%
-                            
+                hbridge->set_pwm_duty_cycle(2,0.0);   //INW set to PWM 0%  
                 this->floating_phase = 1;
                 
                 break;
             case 2:  //V-W
                 //U floating
                 hbridge->disable_pwm_phase(0);          //U phase floating
-                
+                hbridge->set_pwm_duty_cycle(0,0.0f);   //INVU set to PWM
 
                 hbridge->enable_pwm_phase(1);           //ENV set to 1
-                
-                
                 hbridge->enable_pwm_phase(2);     //ENW set to 1
                 hbridge->set_pwm_duty_cycle(1,duty);   //INV set to PWM
-                hbridge->set_pwm_duty_cycle(0,0.0f);   //INVU set to PWM
                 hbridge->set_pwm_duty_cycle(2,0.0);   //INW set to PWM 0%
-
-                
                 this->floating_phase = 0;
                 
                 break;
@@ -206,55 +197,36 @@ void BLDC::start_motor_commutation(uint8_t current_stage , float duty)
 
                 //W floating
                 hbridge->disable_pwm_phase(2);          //W phase floating  
-                
+                hbridge->set_pwm_duty_cycle(2,0.0f);   //INVU set to PWM
+
                 hbridge->enable_pwm_phase(1);           //ENV set to 1
-                
-                
                 hbridge->enable_pwm_phase(0);     //ENU set to 1
                 hbridge->set_pwm_duty_cycle(1,duty);   //INV set to PWM
-                hbridge->set_pwm_duty_cycle(2,0.0f);   //INVU set to PWM
                 hbridge->set_pwm_duty_cycle(0,0.0);   //INU set to PWM 0%
-
-                
-                
                 this->floating_phase = 2;
                 
                 break;
             case 4://W-U
                 //V floating
                 hbridge->disable_pwm_phase(1);          //V phase floating 
-                
+                hbridge->set_pwm_duty_cycle(1,0.0f);   //INVU set to PWM
+
                 hbridge->enable_pwm_phase(2);           //ENW set to 1
-                
-                
                 hbridge->enable_pwm_phase(0);     //ENU set to 1
                 hbridge->set_pwm_duty_cycle(2,duty);   //INW set to PWM
-                hbridge->set_pwm_duty_cycle(1,0.0f);   //INVU set to PWM
                 hbridge->set_pwm_duty_cycle(0,0.0);   //INU set to PWM 0%
-
-                                
-
-
-                
                 this->floating_phase = 1;
                 
                 break;
             case 5: //W-V
                 //U floating
                 hbridge->disable_pwm_phase(0);          //U phase floating
-                
+                hbridge->set_pwm_duty_cycle(0,0.0f);   //INVU set to PWM
 
                 hbridge->enable_pwm_phase(2);           //ENW set to 1
-                
-                
                 hbridge->enable_pwm_phase(1);     //ENV set to 1
                 hbridge->set_pwm_duty_cycle(2,duty);   //INW set to PWM
-                hbridge->set_pwm_duty_cycle(0,0.0f);   //INVU set to PWM
-                hbridge->set_pwm_duty_cycle(1,0.0);   //INV set to PWM 0%
-
-                                  
-
-                
+                hbridge->set_pwm_duty_cycle(1,0.0);   //INV set to PWM 0
                 this->floating_phase = 0;
                 //while(1);
                 break;      
@@ -269,8 +241,16 @@ void BLDC::start_motor_commutation(uint8_t current_stage , float duty)
 
 void BLDC::shutdown_all(void)
 {
-   // hbridge->enable_pwm_phase(0);  // u bot on
-    //hbridge->set_pwm_duty_cycle(0,0.0f);
+    hbridge->enable_pwm_phase(0);  // u bot on
+    hbridge->enable_pwm_phase(1);  // u bot on
+    hbridge->enable_pwm_phase(2);  // u bot on
+    hbridge->set_pwm_duty_cycle(0,0.0f);
+    hbridge->set_pwm_duty_cycle(1,0.0f);
+    hbridge->set_pwm_duty_cycle(2,0.0f);
+    HAL_Delay(10);
+    hbridge->disable_pwm_phase(0);  // u bot on
+    hbridge->disable_pwm_phase(1);  // u bot on
+    hbridge->disable_pwm_phase(2);  // u bot on
     //HAL_Delay(500);
     //hbridge->disable_pwm_phase(2);  //w bot off
    // hbridge->disable_pwm_phase(0);  // u bot off
