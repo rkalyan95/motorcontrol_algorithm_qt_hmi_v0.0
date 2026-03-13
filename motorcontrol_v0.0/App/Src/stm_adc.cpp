@@ -9,42 +9,56 @@ extern "C" {
 template <typename channelnum_t, typename rawcount_t>
 void ADC<channelnum_t,rawcount_t> :: init(void)
 {
-     HAL_ADC_Start(this->periphraddress);
+    if(this->periphraddress != nullptr)
+    {
+        HAL_ADC_Start(this->periphraddress);
+    }
+     
 }
 
 template <typename channelnum_t, typename rawcount_t>
 void ADC<channelnum_t,rawcount_t> :: uninit(void)
 {
-    HAL_ADC_Stop(this->periphraddress);
+    if(this->periphraddress != nullptr)
+    {
+        HAL_ADC_Stop(this->periphraddress);
+    }
+    
 }
 
 template <typename channelnum_t, typename rawcount_t>
 void ADC<channelnum_t,rawcount_t> :: read(void)
 {
+    if(this->periphraddress != nullptr)
+    {
     
-    if (HAL_ADC_PollForConversion(this->periphraddress, 10) == HAL_OK) 
-        {
-           this->rawbuffer = HAL_ADC_GetValue(this->periphraddress);
-        }
+        if (HAL_ADC_PollForConversion(this->periphraddress, 10) == HAL_OK) 
+            {
+                this->rawbuffer = HAL_ADC_GetValue(this->periphraddress);
+            }
         else
-        {
-          this->rawbuffer = 0;
-        }
-    
+            {
+                this->rawbuffer = 0;
+            }
+    }
 }
 
 template <typename channelnum_t, typename rawcount_t>
 void ADC<channelnum_t,rawcount_t> :: write(void)
 {
-
+   
 }
 
 template <typename channelnum_t, typename rawcount_t>
 ADC<channelnum_t,rawcount_t>::ADC(ADC_HandleTypeDef *adc,channelnum_t channelnum)
 {
-    this->periphraddress = adc;
-    this->channelnum = channelnum;
-    this->rawbuffer = 0;
+    if(adc!=nullptr)
+    {
+        this->periphraddress = adc;
+        this->channelnum = channelnum;
+        this->rawbuffer = 0;
+    }
+
 }
 
 

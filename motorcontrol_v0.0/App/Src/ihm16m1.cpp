@@ -15,6 +15,7 @@ Timer PwmPhaseU(&htim1, (uint32_t)TIM_CHANNEL_1);
 Timer PwmPhaseV(&htim1, (uint32_t)TIM_CHANNEL_2);
 Timer PwmPhaseW(&htim1, (uint32_t)TIM_CHANNEL_3);
 
+//configure timer 2 channel for using current reference setting
 std::array<IPeripheral*, 3> motortimers
 {
     &PwmPhaseU, &PwmPhaseV, &PwmPhaseW
@@ -31,25 +32,25 @@ ADC VBUS(&hadc1, (uint32_t)ADC_CHANNEL_1);
 ADC NTC(&hadc1, (uint32_t)ADC_CHANNEL_2);
 ADC CURRFDBK_2(&hadc1, (uint32_t)ADC_CHANNEL_3);
 ADC CURRFDBK_3(&hadc1, (uint32_t)ADC_CHANNEL_4);
-ADC BEMF_PHA_V(&hadc1, (uint32_t)ADC_CHANNEL_5);
+//ADC BEMF_PHA_V(&hadc1, (uint32_t)ADC_CHANNEL_5);
 ADC BEMF_PHA_U(&hadc1, (uint32_t)ADC_CHANNEL_6);
-ADC BEMF_PHA_W(&hadc1, (uint32_t)ADC_CHANNEL_7);
+//ADC BEMF_PHA_W(&hadc1, (uint32_t)ADC_CHANNEL_7);
 ADC CURRFDBK_1(&hadc1, (uint32_t)ADC_CHANNEL_8);
 
-Sensor sense_vbus(&VBUS, 1, 0);
-Sensor sense_ntc(&NTC, 1, 0);
+Sensor sense_vbus(&VBUS, 16.0f, 0);
+Sensor sense_ntc(&NTC, 1.0f, 0.0f);
 
-Sensor sense_curr_fdbk1(&CURRFDBK_1, 1, 0);
-Sensor sense_curr_fdbk2(&CURRFDBK_2, 1, 0);
-Sensor sense_curr_fdbk3(&CURRFDBK_3, 1, 0);
+Sensor sense_curr_fdbk1(&CURRFDBK_1, 1.0f, 0.0f);
+Sensor sense_curr_fdbk2(&CURRFDBK_2, 1.0f, 0.0f);
+Sensor sense_curr_fdbk3(&CURRFDBK_3, 1.0f, 0.0f);
 
-Sensor sense_bemf_v(&BEMF_PHA_V, 1, 0);
-Sensor sense_bemf_u(&BEMF_PHA_U, 1, 0);
-Sensor sense_bemf_w(&BEMF_PHA_W, 1, 0);
+//Sensor sense_bemf_v(&BEMF_PHA_V, 11.0f, 0.0f);
+Sensor sense_bemf_u(&BEMF_PHA_U, 11.0f, 0.0f);
+//Sensor sense_bemf_w(&BEMF_PHA_W, 11.0f, 0.0f);
 
-std::array<Sensor*,8> motorsensors
+std::array<Sensor*,8> motorsensors   //lvalues can be used here?
 {
-    &sense_vbus, &sense_ntc, &sense_curr_fdbk1, &sense_curr_fdbk2, &sense_curr_fdbk3, &sense_bemf_v, &sense_bemf_u , &sense_bemf_w
+    &sense_vbus, &sense_ntc, &sense_curr_fdbk1, &sense_curr_fdbk2, &sense_curr_fdbk3, &sense_bemf_u
 };
 
 enum class sensor_id : uint8_t
@@ -70,14 +71,17 @@ enum class sensor_id : uint8_t
 
 IHM16M1 :: IHM16M1()
 {
+
     timer_periphs = motortimers;
     gpio_periphs = motorgpio;
     generic_sensors = motorsensors;
+
 
 }
 
 void IHM16M1 :: set_pwm_duty_cycle(uint8_t phase, float duty)
 {
+    
     if(phase > timer_periphs.size() || timer_periphs[phase]==nullptr)
     {
         return;
@@ -102,6 +106,10 @@ void IHM16M1 :: enable_pwm_phase(uint8_t phase)
 }
 void IHM16M1 :: disable_pwm_phase(uint8_t phase) 
 {
+    if(gpio_periphs[phase]==nullptr)
+    {
+        return;
+    }
     this->gpio_periphs[phase]->rawbuffer = 0x00000000;
     this->gpio_periphs[phase]->write();
 }
@@ -143,6 +151,7 @@ void IHM16M1 :: init()
 void IHM16M1 :: get_vbus(float *vbus)
 {
     uint8_t index = static_cast<uint8_t>(sensor_id::VBUS_SENSOR_ID);
+
     if(generic_sensors[index]==nullptr)
     {
         return;
@@ -157,6 +166,7 @@ void IHM16M1 :: get_vbus(float *vbus)
 void IHM16M1 :: get_temperature(float *temperature)						
 {
     uint8_t index = static_cast<uint8_t>(sensor_id::NTC_SENSOR_ID);
+
     if(generic_sensors[index]==nullptr)
     {
         return;

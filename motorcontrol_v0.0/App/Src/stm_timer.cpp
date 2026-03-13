@@ -11,9 +11,12 @@ extern "C" {
 template <typename channel_t, typename counter_reg_t>
 Timer<channel_t,counter_reg_t> :: Timer(TIM_HandleTypeDef *timer, channel_t channelnumber)
 {
-    this->periphraddress = timer;
-    this->channelnumber = channelnumber;
-    this->rawbuffer = 0;
+    if(timer!=nullptr)
+    {
+        this->periphraddress = timer;
+        this->channelnumber = channelnumber;
+        this->rawbuffer = 0;
+    }
 
 }
 
@@ -21,7 +24,10 @@ Timer<channel_t,counter_reg_t> :: Timer(TIM_HandleTypeDef *timer, channel_t chan
 template <typename channel_t, typename counter_reg_t>
 void Timer<channel_t,counter_reg_t> :: init(void)
 {
-    HAL_TIM_PWM_Start(this->periphraddress, this->channelnumber);
+    if(this->periphraddress!=nullptr)
+    {
+        HAL_TIM_PWM_Start(this->periphraddress, this->channelnumber);
+    }
 
 }
 template <typename channel_t, typename counter_reg_t>
@@ -32,12 +38,20 @@ void Timer<channel_t,counter_reg_t> :: uninit(void)
 template <typename channel_t, typename counter_reg_t>
 void Timer<channel_t,counter_reg_t> :: read(void)
 {
-   this->rawbuffer = __HAL_TIM_GET_COMPARE(this->periphraddress, this->channelnumber);
+    if(this->periphraddress!=nullptr)
+    {
+        this->rawbuffer = __HAL_TIM_GET_COMPARE(this->periphraddress, this->channelnumber);
+    }
+   
 }
 template <typename channel_t, typename counter_reg_t>
 void Timer<channel_t,counter_reg_t> :: write(void)
 {
-    __HAL_TIM_SET_COMPARE(this->periphraddress, this->channelnumber, this->rawbuffer);
+    if(this->periphraddress!=nullptr)
+    {
+         __HAL_TIM_SET_COMPARE(this->periphraddress, this->channelnumber, this->rawbuffer);
+    }
+   
 }
 
 

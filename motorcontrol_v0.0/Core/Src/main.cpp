@@ -70,6 +70,7 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN 0 */
 
 Gpio DefaultLed(led_builtin_nucleo_GPIO_Port ,GPIO_PIN_13);
+Gpio EnabePower(GPIOC ,GPIO_PIN_4);
 IHM16M1 hbridge;
 
 /* USER CODE END 0 */
@@ -80,7 +81,7 @@ IHM16M1 hbridge;
   */
 int main(void)
 {
-   
+   uint8_t commutation_stage = 0;
   /* USER CODE BEGIN 1 */
   
    float speed = 0.0f;
@@ -88,38 +89,40 @@ int main(void)
    BLDC mybldc(mymotordriver);
    IMotor *mymotor = &mybldc;
    IPeripheral *myled = &DefaultLed;
-
+   IPeripheral *powerstage = &EnabePower;
   /* USER CODE END 1 */
-
-  /* MCU Configuration--------------------------------------------------------*/
-
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
-  MX_GPIO_Init();
-  MX_TIM1_Init();
-  MX_ADC1_Init();
-  /* USER CODE BEGIN Init */
-
-  SystemClock_Config();
-  hbridge.init();
-  mymotor->commutation_stage = 0;
-  mymotor->set_motor_speed(0.0f);
-  
-  __HAL_TIM_MOE_ENABLE(&htim1);   //will be handled by motor class
 
   /* USER CODE END Init */
    
+   HAL_Init();
    
+  MX_GPIO_Init();
+  MX_TIM1_Init();
+  MX_ADC1_Init();
+  SystemClock_Config();
   /* USER CODE BEGIN WHILE */
-   myled->rawbuffer = 0;
-   speed = 500.0f;
-  while (1) {
-    
+  // myled->rawbuffer = 0;
+  // powerstage->rawbuffer = 0;
+  // powerstage->write();
+  // HAL_Delay(500);
+   powerstage->rawbuffer = 1;
+   powerstage->write();
+  // speed = 500.0f;
+__HAL_TIM_MOE_ENABLE(&htim1);
+
+while(1) {
     myled->rawbuffer = !myled->rawbuffer;
     myled->write();
-    mymotor->set_motor_speed(speed);
-    HAL_Delay(20);
-  }
+    //mymotor->set_motor_speed(speed);
+   mymotor->start_motor_commutation(commutation_stage,0.90f);
+    commutation_stage++;
+    if(commutation_stage==6)
+    {
+         commutation_stage = 0;
+     }
+    HAL_Delay(5);
+   
+}
 
   /* USER CODE END 3 */
 }

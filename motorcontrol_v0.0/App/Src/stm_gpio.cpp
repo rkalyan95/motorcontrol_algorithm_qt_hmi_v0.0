@@ -19,14 +19,19 @@ void Gpio<StateType>  :: uninit(void)
 template <typename StateType>
 void Gpio<StateType>  :: write(void)
 {
+    if(this->periphraddress != nullptr)
+    {
+        HAL_GPIO_WritePin(this->periphraddress, this->pin, (this->rawbuffer > 0) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    }
     
-    HAL_GPIO_WritePin(this->periphraddress, this->pin, (this->rawbuffer > 0) ? GPIO_PIN_SET : GPIO_PIN_RESET);
 }
 template <typename StateType>
 void Gpio<StateType>  :: read(void)
 {
-     this->rawbuffer = HAL_GPIO_ReadPin(this->periphraddress, this->pin);
-     
+    if(this->periphraddress != nullptr)
+    {
+        this->rawbuffer = HAL_GPIO_ReadPin(this->periphraddress, this->pin);
+    }
 }
 
 template <typename StateType>
@@ -38,8 +43,12 @@ Gpio<StateType>  :: ~Gpio()
 template <typename StateType>
 Gpio<StateType>  :: Gpio(GPIO_TypeDef *port,uint16_t portpin)
 {
-    this->periphraddress = port;
-    this->pin = portpin;
+    if(port!=nullptr)
+    {
+        this->periphraddress = port;
+        this->pin = portpin;
+    }
+
 } 
 
 

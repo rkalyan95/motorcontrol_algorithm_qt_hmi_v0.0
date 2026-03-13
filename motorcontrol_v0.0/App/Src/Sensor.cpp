@@ -34,7 +34,8 @@ void Sensor :: read(void)
     }
     this->periph->read();
     this->sensroraw = this->periph->rawbuffer;
-    this->sensorphy = this->sensorgain * this->sensroraw + this->sensoroffset;
+    
+    this->sensorphy = ((float)(this->sensroraw) *(this->perbitphy)*(this->sensorgain) + this->sensoroffset);
 }
 void Sensor ::write(void)
 {

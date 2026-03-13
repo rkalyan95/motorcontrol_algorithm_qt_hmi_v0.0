@@ -29,7 +29,7 @@ class Sensor
         IPeripheral *periph;
         float sensorgain;
         float sensoroffset;
-
+        static constexpr float perbitphy = 0.0008058f;
     public:
         uint32_t sensroraw;
         float sensorphy;
