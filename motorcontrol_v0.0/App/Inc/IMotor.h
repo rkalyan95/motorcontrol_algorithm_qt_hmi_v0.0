@@ -28,15 +28,15 @@ class IMotor
     public:
         IMotorDriver *hbridge;
         static constexpr bool wdg_connection = 0;
-        static constexpr float resistance = 2.5f;
+        static constexpr float resistance = 12.0f;
         static constexpr float inductance = 0.00005f;
         static constexpr uint8_t polepair = 7;
         static constexpr float maxvoltage_rated = 12.0f;
-        static constexpr float maxcurrent_rated = 15.0f;
-        static constexpr float kv_rating = 110.0f;
-        static constexpr float ke_const = 0.086f;
-        static constexpr float kt_const = 0.086f;
-        static constexpr float rotor_inertia = 0.00001f;
+        static constexpr float maxcurrent_rated = 1.50f;
+        static constexpr float kv_rating = 260.0f;
+        static constexpr float ke_const = 0.0367f;
+        static constexpr float kt_const = 0.0367f;
+        static constexpr float rotor_inertia = 0.0000025f;
         static constexpr float slot_count = 12.0f;
         float current_rpm;
         float target_rpm;
@@ -46,8 +46,8 @@ class IMotor
         float back_emf;
         float applied_voltage;
         float voltage_reference;
-        static constexpr float viscous_friction = 0.00001f;
-        static constexpr float static_load_tq = 0.06f;
+        static constexpr float viscous_friction = 0.000001f;
+        static constexpr float static_load_tq = 0.017f;
         
         uint8_t commutation_stage;
         uint8_t floating_phase;

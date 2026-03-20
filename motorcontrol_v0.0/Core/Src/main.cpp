@@ -110,21 +110,17 @@ int main(void)
    powerstage->write();
    mymotor->shutdown_all();
    mymotor->align_motor();
-  speed = 500.0f;
 
-uint32_t delayms = 2;
+
+uint32_t delayms = 5;
 uint8_t safety_flag = 0;
+
 while(1) {
-    myled->rawbuffer = !myled->rawbuffer;
-    myled->write();
-    mymotor->set_motor_speed(speed);
-    //for(uint8_t step = 0;step<6;step++)
-    //{
-     // mymotor->start_motor_commutation(step,0.45f);
-      HAL_Delay(delayms);
-   // }
-    
-    
+
+  mymotor->set_motor_speed(500.0f); // Calculating voltage for 100 RPM
+  myled->rawbuffer = !myled->rawbuffer;
+  myled->write();
+  HAL_Delay(delayms);
 }
 
   /* USER CODE END 3 */
