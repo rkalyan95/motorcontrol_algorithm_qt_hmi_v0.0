@@ -1,29 +1,24 @@
 @startuml
-skinparam monochrome true
-skinparam shadowing false
-skinparam defaultFontName "Verdana"
 
-state "Initialize" as init
-state "Idle / Ready" as idle
-state "Driving (Forward/Reverse)" as running
-state "Electronic Braking" as breaking
-state "System Fault" as fault <<warning>>
 
-[*] --> init
 
-init --> idle : System_Ready
+skinparam state {
+  BackgroundColor<<Active>> PaleGreen
+  BackgroundColor<<Passive>> Gold
+  BackgroundColor<<BusOff>> Tomato
+  BorderColor Black
+}
 
-idle -right-> running : Torque_Request > 0
-running -left-> idle : Speed == 0
 
-running -down-> breaking : Torque_Request < 0
-breaking -up-> running : Torque_Request > 0
-breaking -> idle : Speed == 0
 
-' Centralized Fault Logic
-running -down-> fault : Error_Detected
-breaking -down-> fault : Error_Detected
-idle -down-> fault : Error_Detected
+state "Error Active" as Active <<Active>> : Node can send and receive \nDominant Error Flags which will disturb other nodes
+state "Error Passive" as Passive <<Passive>> : Node can send and receive but it sends \nRecessive Error Flags \nin case of error without disturbing the bus
+state "Bus Off" as BusOff <<BusOff>> : Transceiver Disabled \n(No TX/RX)
 
-fault -up-> idle : Reset_Command
+Active -down-> Passive : (TEC > 127)\n||\n(REC > 127)
+Passive -up-> Active : (TEC <= 127)\n&&\n(REC <= 127)
+
+Passive -down-> BusOff : TEC > 255
+
+BusOff -left-> Active : 128 x 1\n Recessive Bits\n(Bus Recovery) \n or Reset the transreciver
 @enduml

@@ -53,6 +53,7 @@ class IMotor
         uint8_t floating_phase;
     public:
         virtual void shutdown_all(void) = 0;
+        virtual void align_motor(void) = 0;
         virtual void set_motor_speed(float rpm) = 0;
         virtual void get_motor_speed(float *rpm) = 0;
         virtual void get_motor_posn(float *ang) = 0;
@@ -70,6 +71,7 @@ class BLDC : public IMotor
         BLDC(IMotorDriver *motordriver);
         virtual void set_motor_speed(float rpm) override;
         virtual void shutdown_all(void) override;
+        void align_motor(void) override;
         virtual void get_motor_speed(float *rpm) override;
         virtual void get_motor_posn(float *ang) override;
         virtual void get_motor_tempe(float *temp) override;
