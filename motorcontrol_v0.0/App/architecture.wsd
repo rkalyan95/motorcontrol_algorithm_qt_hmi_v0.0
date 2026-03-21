@@ -85,6 +85,7 @@ class BLDC #Red
     +void get_motor_posn(float *angle);
     +void get_motor_ph_emf(uint8_t phase,float *bemf);
     +void get_phase_current(uint8_t phase , float *current);
+
 }
 
 

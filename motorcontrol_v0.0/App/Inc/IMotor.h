@@ -52,6 +52,7 @@ class IMotor
         uint8_t commutation_stage;
         uint8_t floating_phase;
         float calculated_duty_cycle = 0.0f;
+        float vbus_voltage = 0.0f;
     public:
         virtual void shutdown_all(void) = 0;
         virtual void align_motor(void) = 0;
@@ -60,14 +61,17 @@ class IMotor
         virtual void get_motor_posn(float *ang) = 0;
         virtual void get_motor_tempe(float *temp) = 0;
         virtual void get_phase_emf(uint8_t phase , float *emf) = 0;
-        virtual void get_phase_current(uint8_t phase , float *curr)  =0; 
+        virtual void get_phase_current(uint8_t phase , float *curr)  = 0; 
         virtual void start_motor_commutation(uint8_t current_stage , float duty) = 0;
-        
+        virtual void start_motor_openloop(float targetrpm) = 0;
+
 
 };
 
 class BLDC : public IMotor
 {
+    private:
+        float rampedrpm = 150.0f;
     public:
         BLDC(IMotorDriver *motordriver);
         virtual void set_motor_speed(float rpm) override;
@@ -79,6 +83,7 @@ class BLDC : public IMotor
         virtual void get_phase_emf(uint8_t phase , float *emf) override;
         virtual void get_phase_current(uint8_t phase , float *curr) override; 
         virtual void start_motor_commutation(uint8_t current_stage , float duty) override;
+        virtual void start_motor_openloop(float targetrpm) override;
 };
 
 

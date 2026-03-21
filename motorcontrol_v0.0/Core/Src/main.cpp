@@ -70,17 +70,40 @@ void SystemClock_Config(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-Gpio DefaultLed(led_builtin_nucleo_GPIO_Port ,GPIO_PIN_13);
+
+Gpio DefaultLed(GPIOB ,GPIO_PIN_13);
 Gpio EnabePower(GPIOC ,GPIO_PIN_4);
 IHM16M1 hbridge;
-   IMotorDriver *mymotordriver = &hbridge;
-   BLDC mybldc(mymotordriver);
-   IMotor *mymotor = &mybldc;
-   IPeripheral *myled = &DefaultLed;
-   IPeripheral *powerstage = &EnabePower;
-  uint8_t commutation_stage_main = 6;
-   float speedrpm = 6.0f;
+IMotorDriver *mymotordriver = &hbridge;
+BLDC mybldc(mymotordriver);
+IMotor *mymotor = &mybldc;
+IPeripheral *myled = &DefaultLed;
+IPeripheral *powerstage = &EnabePower;
+uint8_t commutation_stage_main = 6;
+float currentspeedrpm = 0.0f;
+float prevspeedrpm = 0.0f;
+float vbusvoltage = 0.0;
 /* USER CODE END 0 */
+
+
+     
+     
+
+
+void openloopcontrolmotor(void)
+{
+
+     HAL_Init();
+     MX_GPIO_Init();
+     MX_TIM1_Init();
+     MX_TIM2_Init();
+     MX_DMA_Init();
+     MX_ADC1_Init();
+     SystemClock_Config();
+     __HAL_TIM_MOE_ENABLE(&htim1);
+     mymotor->shutdown_all();
+
+}
 
 /**
   * @brief  The application entry point.
@@ -96,59 +119,31 @@ int main(void)
 
   /* USER CODE END Init */
    
-   HAL_Init();
-   
-  MX_GPIO_Init();
-  MX_TIM1_Init();
-  MX_TIM2_Init();
-  MX_DMA_Init();
-  MX_ADC1_Init();
-  
-  SystemClock_Config();
-  /* USER CODE BEGIN WHILE */
 
+  /* USER CODE BEGIN WHILE */
+  openloopcontrolmotor();
   HAL_Delay(2000);
-  __HAL_TIM_MOE_ENABLE(&htim1);
+  
    powerstage->rawbuffer = 1;
    powerstage->write();
-   mymotor->shutdown_all();
-   mymotor->align_motor();
-   //HAL_Delay(2000);
-   uint32_t counter = 39999;
-/*
-
    
-   __HAL_TIM_SET_AUTORELOAD(&htim2, 19999);
-while(counter!=1999)
-{
-    
-    mymotor->start_motor_commutation(commutation_stage_main,0.30);
-
-    commutation_stage_main++;
-    if(commutation_stage_main==6)
-    {
-      commutation_stage_main = 0;
-      com_count++;
-      __HAL_TIM_SET_AUTORELOAD(&htim2, counter--);
-    }
-    HAL_Delay(10);
-  }
-  */
-   __HAL_TIM_SET_AUTORELOAD(&htim2, counter);
+   mymotor->align_motor();
+   HAL_Delay(500);
    HAL_TIM_Base_Start_IT(&htim2);
-   mymotor->set_motor_speed(speedrpm); // Calculating voltage for 100 RPM
-      myled->rawbuffer = 0;
-    myled->write();
-    HAL_Delay(2000);
+
 while(1) 
 {
   
-   if(adcdmainterrupt==1)
-   {
-     adcdmainterrupt = 0;
-    myled->rawbuffer = 1;
-    myled->write();
-   }
+     powerstage->read();
+     if(powerstage->rawbuffer == 0)
+    {
+        mymotor->shutdown_all();
+     }
+     else
+     {
+        mymotor->start_motor_openloop(150.0f);
+     }
+     HAL_Delay(10);
 }
 
   /* USER CODE END 3 */
@@ -241,8 +236,7 @@ extern "C" void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 if (htim->Instance == TIM2)
 {
   
-  mymotor->start_motor_commutation(commutation_stage_main,0.50f);
-  //mymotor->set_motor_speed(speedrpm); // Calculating voltage for 100 RPM
+  mymotor->start_motor_commutation(commutation_stage_main,mymotor->calculated_duty_cycle);
   commutation_stage_main++;
   if(commutation_stage_main==6)
   {

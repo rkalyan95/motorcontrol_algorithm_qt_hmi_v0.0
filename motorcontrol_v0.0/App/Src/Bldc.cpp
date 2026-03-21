@@ -32,23 +32,18 @@ void BLDC::set_motor_speed(float target_rpm)
 {
     if(hbridge!=nullptr)
     {
-
+        
         float angular_speed = target_rpm*0.1047f;   //20 * .1047 = 2.094 
         float torque = this->viscous_friction * angular_speed + this->static_load_tq; // 2.094*0.00001 + 0.015 = 0.0150;
     
         if(hbridge!=nullptr)
          {
-                this->torque_rqstd = torque;   //0.0150
+               this->torque_rqstd = torque;   //0.0150
                 this->desired_I = this->torque_rqstd / this->kt_const;  //0.0150/.0367 = 0.40A
-
-                //hbridge->get_backemf(this->floating_phase,&(this->back_emf));
-
                 this->back_emf = angular_speed * this->ke_const;  ///2.094 * 0.0367 = 0.07V
 
                 this->applied_voltage = this->desired_I * this->resistance + this->back_emf; //0.40A*16 = 6.4V + 0.07 = 6.47V
 
-                hbridge->get_vbus(&(this->voltage_reference));
-                 
                 if(this->voltage_reference == 0.0f)
                 {
                     this->voltage_reference = 12.07f;
@@ -262,3 +257,49 @@ void BLDC::align_motor(void)
     HAL_Delay(500);
 }
 
+/*
+   In mechanical , frequency is RPM/60 
+   in electroca; , frquencys is Fmech * PolePair
+   in commutation , frequency is Felct*6
+
+   in timer terms , frequency is Fcommut = Fin/Arr
+   so 
+   Arr = Fin / Fcommut 
+   Here 
+   Fcommut = Felectrical*6 = Fmech*PolePair*6 =  (Rpm/60)*(PolePair)*(6)
+                                               (Rpm * PolePair*0.1)
+
+   Arr =  4000000/(Fcommut) = 40000000/Rpm*PolePair
+
+
+*/
+void BLDC::start_motor_openloop(float targetrpm)
+{
+    uint32_t frequencyArrValue = 0;
+    if(hbridge!=nullptr)
+    {
+        hbridge->get_vbus(&this->vbus_voltage);
+        
+        if(targetrpm>this->rampedrpm)
+        {
+            this->rampedrpm+=5.0f;
+        }
+        else if(targetrpm<this->rampedrpm)
+        {
+            this->rampedrpm-=5.0f;
+        }
+
+        if(this->rampedrpm>10.0f)
+        {
+            frequencyArrValue = (40000000.0f)/(this->rampedrpm*(float)this->polepair);
+            __HAL_TIM_SET_AUTORELOAD(&htim2, frequencyArrValue);
+        }
+        else
+        {
+            __HAL_TIM_SET_AUTORELOAD(&htim2, 65535);
+        }
+
+        this->set_motor_speed(this->rampedrpm);
+    }
+
+}
