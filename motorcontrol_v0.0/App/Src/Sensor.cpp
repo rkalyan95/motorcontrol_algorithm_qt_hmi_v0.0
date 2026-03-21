@@ -32,6 +32,7 @@ void Sensor :: read(void)
     {
         return;
     }
+    
     this->periph->read();
     this->sensroraw = this->periph->rawbuffer;
     

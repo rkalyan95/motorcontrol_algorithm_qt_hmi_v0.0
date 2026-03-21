@@ -32,8 +32,6 @@ void BLDC::set_motor_speed(float target_rpm)
 {
     if(hbridge!=nullptr)
     {
-        //assuming rpm is torque as of now 
-        static float calculated_dc = 0.0f;
 
         float angular_speed = target_rpm*0.1047f;   //20 * .1047 = 2.094 
         float torque = this->viscous_friction * angular_speed + this->static_load_tq; // 2.094*0.00001 + 0.015 = 0.0150;
@@ -49,37 +47,18 @@ void BLDC::set_motor_speed(float target_rpm)
 
                 this->applied_voltage = this->desired_I * this->resistance + this->back_emf; //0.40A*16 = 6.4V + 0.07 = 6.47V
 
-               // hbridge->get_vbus(&(this->voltage_reference));
-
-                this->voltage_reference = 12.0f; //todo : fix it , 
+                hbridge->get_vbus(&(this->voltage_reference));
+                 
                 if(this->voltage_reference == 0.0f)
                 {
-                    this->voltage_reference = 12.0f;
+                    this->voltage_reference = 12.07f;
                 }
 
-                calculated_dc = this->applied_voltage / this->voltage_reference;  //6.47/12 = 0.55
-
-                //calculated_dc += 0.15f;
-                if(calculated_dc>0.95f)
+                this->calculated_duty_cycle = this->applied_voltage / this->voltage_reference;  //6.47/12 = 0.55
+                if(this->calculated_duty_cycle>0.95f)
                 {
-                    calculated_dc = 0.95f;
-                }
-                /*DO the timer calculations here and move the commutation logic to the ISR of the timer
-                
-                   you see the thing is , we need to dynamically change the period at which timer fires 
-                   for 1500 rpm value , the timer should commutate at 1ms , but if we take say 500rpm 
-                   then the calculations would be something like the below 
-                   500 * 42 = 21000 steps per minute
-                   which means 350 steps per second 
-                   which means approximately 3ms 
-                */
-                start_motor_commutation(commutation_stage,calculated_dc);
-                commutation_stage++;
-                if(commutation_stage==6)
-                {
-                    commutation_stage = 0;
-                }
-                          
+                    this->calculated_duty_cycle = 0.95f;
+                }               
           }
     }
 }
@@ -282,3 +261,4 @@ void BLDC::align_motor(void)
     this->start_motor_commutation(0,0.15f);
     HAL_Delay(500);
 }
+

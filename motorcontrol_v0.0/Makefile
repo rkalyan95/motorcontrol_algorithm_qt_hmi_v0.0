@@ -41,6 +41,7 @@ Core/Src/stm32l4xx_it.c \
 Core/Src/gpio.c \
 Core/Src/tim.c \
 Core/Src/adc.c \
+Core/Src/dma.c \
 Core/Src/stm32l4xx_hal_msp.c \
 Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_tim.c \
 Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_tim_ex.c \

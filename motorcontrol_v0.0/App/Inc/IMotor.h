@@ -51,6 +51,7 @@ class IMotor
         
         uint8_t commutation_stage;
         uint8_t floating_phase;
+        float calculated_duty_cycle = 0.0f;
     public:
         virtual void shutdown_all(void) = 0;
         virtual void align_motor(void) = 0;

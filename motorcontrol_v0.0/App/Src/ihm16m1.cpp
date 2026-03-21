@@ -30,12 +30,15 @@ std::array<IPeripheral*, 3> motorgpio
 
 ADC VBUS(&hadc1, (uint32_t)ADC_CHANNEL_1);
 ADC NTC(&hadc1, (uint32_t)ADC_CHANNEL_2);
+
+ADC CURRFDBK_1(&hadc1, (uint32_t)ADC_CHANNEL_8);
 ADC CURRFDBK_2(&hadc1, (uint32_t)ADC_CHANNEL_3);
 ADC CURRFDBK_3(&hadc1, (uint32_t)ADC_CHANNEL_4);
+
 //ADC BEMF_PHA_V(&hadc1, (uint32_t)ADC_CHANNEL_5);
 ADC BEMF_PHA_U(&hadc1, (uint32_t)ADC_CHANNEL_6);
 //ADC BEMF_PHA_W(&hadc1, (uint32_t)ADC_CHANNEL_7);
-ADC CURRFDBK_1(&hadc1, (uint32_t)ADC_CHANNEL_8);
+
 
 Sensor sense_vbus(&VBUS, 16.0f, 0);
 Sensor sense_ntc(&NTC, 1.0f, 0.0f);
@@ -144,21 +147,21 @@ void IHM16M1 :: init()
     {
         if(sensors!=nullptr)
         {
-            sensors->uninit();
+            //sensors->init();
         }
     }
 }		
 void IHM16M1 :: get_vbus(float *vbus)
 {
     uint8_t index = static_cast<uint8_t>(sensor_id::VBUS_SENSOR_ID);
-
+    
     if(generic_sensors[index]==nullptr)
     {
         return;
     }
     this->generic_sensors[index]->init();
     this->generic_sensors[index]->read();
-    this->generic_sensors[index]->uninit();
+   // this->generic_sensors[index]->uninit();
    *vbus = this->generic_sensors[index]->sensorphy;
     
 }
@@ -171,9 +174,9 @@ void IHM16M1 :: get_temperature(float *temperature)
     {
         return;
     }   
-    generic_sensors[index]->init(); 
+  //  generic_sensors[index]->init(); 
     generic_sensors[index]->read();
-    generic_sensors[index]->uninit(); 
+    //generic_sensors[index]->uninit(); 
     *temperature = generic_sensors[index]->sensorphy;
 }
 void IHM16M1 :: get_backemf(uint8_t phase, float *bemf)
@@ -196,9 +199,9 @@ void IHM16M1 :: get_backemf(uint8_t phase, float *bemf)
      {
         return;
      }
-     generic_sensors[index]->init(); 
+     //generic_sensors[index]->init(); 
      generic_sensors[index]->read();
-     generic_sensors[index]->uninit(); 
+     //generic_sensors[index]->uninit(); 
      *bemf = generic_sensors[index]->sensorphy;
 
 
@@ -223,9 +226,9 @@ void IHM16M1 :: get_fdbkcurrent(uint8_t phase, float *fdbkcurrent)
      {
         return;
      }
-     generic_sensors[index]->init();
+     //generic_sensors[index]->init();
      generic_sensors[index]->read();
-     generic_sensors[index]->uninit();
+     //generic_sensors[index]->uninit();
      *fdbkcurrent = generic_sensors[index]->sensorphy;
 }	
 

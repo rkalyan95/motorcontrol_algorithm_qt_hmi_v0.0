@@ -4,6 +4,7 @@
 extern "C" {
     #include "stdint.h"
     #include <gpio.h>
+    
 }
 
 #ifdef __cplusplus
@@ -70,10 +71,10 @@ class Timer : public Peripheral<TIM_HandleTypeDef>
         void write(void) override;
 };
 
-template <typename channelnum_t=uint32_t , typename rawcount_t = uint16_t>
+template <typename channelnum_t=uint32_t , typename rawcount_t = uint32_t>
 class ADC : public Peripheral<ADC_HandleTypeDef>
 {
-    private:
+    protected:
         channelnum_t channelnum;
     public:
         ADC(ADC_HandleTypeDef *adc,channelnum_t channelnum);

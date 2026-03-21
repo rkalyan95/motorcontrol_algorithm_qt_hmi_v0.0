@@ -26,6 +26,7 @@ extern "C" {
     #include "gpio.h"
     #include "tim.h"
     #include "adc.h"
+    #include "dma.h"
     #include <cstring>
     #include <cstdio>
 }
@@ -72,7 +73,13 @@ void SystemClock_Config(void);
 Gpio DefaultLed(led_builtin_nucleo_GPIO_Port ,GPIO_PIN_13);
 Gpio EnabePower(GPIOC ,GPIO_PIN_4);
 IHM16M1 hbridge;
-
+   IMotorDriver *mymotordriver = &hbridge;
+   BLDC mybldc(mymotordriver);
+   IMotor *mymotor = &mybldc;
+   IPeripheral *myled = &DefaultLed;
+   IPeripheral *powerstage = &EnabePower;
+  uint8_t commutation_stage_main = 6;
+   float speedrpm = 6.0f;
 /* USER CODE END 0 */
 
 /**
@@ -81,15 +88,10 @@ IHM16M1 hbridge;
   */
 int main(void)
 {
-   uint8_t commutation_stage = 0;
+   
   /* USER CODE BEGIN 1 */
+  uint8_t com_count = 0;
   
-   float speed = 0.0f;
-   IMotorDriver *mymotordriver = &hbridge;
-   BLDC mybldc(mymotordriver);
-   IMotor *mymotor = &mybldc;
-   IPeripheral *myled = &DefaultLed;
-   IPeripheral *powerstage = &EnabePower;
   /* USER CODE END 1 */
 
   /* USER CODE END Init */
@@ -98,29 +100,55 @@ int main(void)
    
   MX_GPIO_Init();
   MX_TIM1_Init();
+  MX_TIM2_Init();
+  MX_DMA_Init();
   MX_ADC1_Init();
+  
   SystemClock_Config();
   /* USER CODE BEGIN WHILE */
-  // myled->rawbuffer = 0;
-  // powerstage->rawbuffer = 0;
-  // powerstage->write();
-  // HAL_Delay(500);
+
+  HAL_Delay(2000);
   __HAL_TIM_MOE_ENABLE(&htim1);
    powerstage->rawbuffer = 1;
    powerstage->write();
    mymotor->shutdown_all();
    mymotor->align_motor();
+   //HAL_Delay(2000);
+   uint32_t counter = 39999;
+/*
 
+   
+   __HAL_TIM_SET_AUTORELOAD(&htim2, 19999);
+while(counter!=1999)
+{
+    
+    mymotor->start_motor_commutation(commutation_stage_main,0.30);
 
-uint32_t delayms = 5;
-uint8_t safety_flag = 0;
-
-while(1) {
-
-  mymotor->set_motor_speed(500.0f); // Calculating voltage for 100 RPM
-  myled->rawbuffer = !myled->rawbuffer;
-  myled->write();
-  HAL_Delay(delayms);
+    commutation_stage_main++;
+    if(commutation_stage_main==6)
+    {
+      commutation_stage_main = 0;
+      com_count++;
+      __HAL_TIM_SET_AUTORELOAD(&htim2, counter--);
+    }
+    HAL_Delay(10);
+  }
+  */
+   __HAL_TIM_SET_AUTORELOAD(&htim2, counter);
+   HAL_TIM_Base_Start_IT(&htim2);
+   mymotor->set_motor_speed(speedrpm); // Calculating voltage for 100 RPM
+      myled->rawbuffer = 0;
+    myled->write();
+    HAL_Delay(2000);
+while(1) 
+{
+  
+   if(adcdmainterrupt==1)
+   {
+     adcdmainterrupt = 0;
+    myled->rawbuffer = 1;
+    myled->write();
+   }
 }
 
   /* USER CODE END 3 */
@@ -203,4 +231,25 @@ void assert_failed(uint8_t *file, uint32_t line)
      ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
+
+
 #endif /* USE_FULL_ASSERT */
+
+extern "C" void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* Prevent unused argument(s) compilation warning */
+if (htim->Instance == TIM2)
+{
+  
+  mymotor->start_motor_commutation(commutation_stage_main,0.50f);
+  //mymotor->set_motor_speed(speedrpm); // Calculating voltage for 100 RPM
+  commutation_stage_main++;
+  if(commutation_stage_main==6)
+  {
+      commutation_stage_main = 0;
+  }
+
+
+}
+}
+
