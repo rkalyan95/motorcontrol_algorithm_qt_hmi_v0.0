@@ -46,7 +46,7 @@ void BLDC::set_motor_speed(float target_rpm)
 
                 if(this->voltage_reference == 0.0f)
                 {
-                    this->voltage_reference = 12.07f;
+                    this->voltage_reference = 1.0f;
                 }
 
                 this->calculated_duty_cycle = this->applied_voltage / this->voltage_reference;  //6.47/12 = 0.55

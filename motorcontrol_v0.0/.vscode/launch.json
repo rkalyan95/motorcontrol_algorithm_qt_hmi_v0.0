@@ -1,0 +1,19 @@
+{
+    "version": "0.0.1",
+    "configurations": [
+        {
+            "name": "Debug MCU",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/motorcontrol_v0.0.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "runToEntryPoint": "main",
+            "servertype": "openocd",
+            "configFiles": [
+                "interface/stlink-v2-1.cfg", 
+                "target/stm32l4x.cfg" 
+            ],
+            "preLaunchTask": "Build Project"
+        }
+    ]
+}
