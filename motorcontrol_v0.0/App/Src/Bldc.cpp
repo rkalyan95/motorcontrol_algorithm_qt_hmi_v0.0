@@ -278,7 +278,7 @@ void BLDC::start_motor_openloop(float targetrpm)
     uint32_t frequencyArrValue = 0;
     if(hbridge!=nullptr)
     {
-        hbridge->get_vbus(&this->vbus_voltage);
+        hbridge->get_vbus(&this->voltage_reference);
         
         if(targetrpm>this->rampedrpm)
         {
