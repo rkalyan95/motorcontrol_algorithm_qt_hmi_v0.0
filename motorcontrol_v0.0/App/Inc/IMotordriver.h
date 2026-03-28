@@ -27,13 +27,7 @@ extern "C" {
 class IMotorDriver {
 protected:
 	// --- State Variables ---
-	std::array<float, 3>	pwm_phase_duty;		// Duty cycles for U, V, W
-	std::array<bool, 3>		phase_bot_enable;	// Bottom switch/Enable states
-	std::array<float, 3>	phase_bemf;			// Back-EMF readings
-	float					motor_driver_temperature;
-	float					motor_bus_voltage;
-	std::array<float, 3>	current_fdbk;		// Phase currents
-	bool					sensorless_control;	// Flag for control mode
+
 
 	// --- Aggregated Peripherals ---
 	// Using std::array to store multiple timer/gpio channels for U, V, W
@@ -42,6 +36,13 @@ protected:
 	std::array<Sensor*, 8>		generic_sensors;
 
 public:
+	std::array<float, 3>	pwm_phase_duty;		// Duty cycles for U, V, W
+	std::array<bool, 3>		phase_bot_enable;	// Bottom switch/Enable states
+	std::array<float, 3>	phase_bemf;			// Back-EMF readings
+	float					motor_driver_temperature;
+	float					motor_bus_voltage;
+	std::array<float, 3>	current_fdbk;		// Phase currents
+	bool					sensorless_control;	// Flag for control mode
 	virtual ~IMotorDriver() = default;
 
 	// --- Pure Virtual Methods (The Contract) ---

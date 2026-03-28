@@ -38,6 +38,8 @@ class IMotor
         static constexpr float kt_const = 0.0367f;
         static constexpr float rotor_inertia = 0.0000025f;
         static constexpr float slot_count = 12.0f;
+        static constexpr float viscous_friction = 0.000001f;
+        static constexpr float static_load_tq = 0.017f;
         float current_rpm;
         float target_rpm;
         float desired_I;
@@ -46,13 +48,11 @@ class IMotor
         float back_emf;
         float applied_voltage;
         float voltage_reference;
-        static constexpr float viscous_friction = 0.000001f;
-        static constexpr float static_load_tq = 0.017f;
-        
         uint8_t commutation_stage;
         uint8_t floating_phase;
         float calculated_duty_cycle = 0.0f;
-        
+        float temperature = 0.0f;
+        uint8_t motorsynch = 0;
     public:
         virtual void shutdown_all(void) = 0;
         virtual void align_motor(void) = 0;

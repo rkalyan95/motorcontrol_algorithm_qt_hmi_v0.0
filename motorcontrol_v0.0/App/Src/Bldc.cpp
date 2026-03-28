@@ -46,7 +46,7 @@ void BLDC::set_motor_speed(float target_rpm)
 
                 if(this->voltage_reference == 0.0f)
                 {
-                    this->voltage_reference = 1.0f;
+                    this->voltage_reference = 12.0f;
                 }
 
                 this->calculated_duty_cycle = this->applied_voltage / this->voltage_reference;  //6.47/12 = 0.55
@@ -253,7 +253,7 @@ void BLDC::shutdown_all(void)
 
 void BLDC::align_motor(void)
 {
-    this->start_motor_commutation(0,0.15f);
+    this->start_motor_commutation(0,0.50f);
     HAL_Delay(500);
 }
 
@@ -276,10 +276,15 @@ void BLDC::align_motor(void)
 void BLDC::start_motor_openloop(float targetrpm)
 {
     uint32_t frequencyArrValue = 0;
+    
     if(hbridge!=nullptr)
     {
         hbridge->get_vbus(&this->voltage_reference);
-        
+        hbridge->get_temperature(&this->temperature);
+        hbridge->get_backemf(this->floating_phase, &this->back_emf);
+        hbridge->get_fdbkcurrent(0, &hbridge->current_fdbk[0]);
+        hbridge->get_fdbkcurrent(1, &hbridge->current_fdbk[1]);
+        hbridge->get_fdbkcurrent(2, &hbridge->current_fdbk[2]);
         if(targetrpm>this->rampedrpm)
         {
             this->rampedrpm+=5.0f;
@@ -289,16 +294,21 @@ void BLDC::start_motor_openloop(float targetrpm)
             this->rampedrpm-=5.0f;
         }
 
-        if(this->rampedrpm>10.0f)
-        {
-            frequencyArrValue = (40000000.0f)/(this->rampedrpm*(float)this->polepair);
-            __HAL_TIM_SET_AUTORELOAD(&htim2, frequencyArrValue);
-        }
-        else
-        {
-            __HAL_TIM_SET_AUTORELOAD(&htim2, 65535);
-        }
 
+        if(this->motorsynch==0)
+        {
+
+            //read here backemf and update sync flag if greater than 8v
+            if(this->rampedrpm>10.0f)
+            {
+                frequencyArrValue = (40000000.0f)/(this->rampedrpm*(float)this->polepair);
+                __HAL_TIM_SET_AUTORELOAD(&htim2, frequencyArrValue);
+            }
+            else
+            {
+                 __HAL_TIM_SET_AUTORELOAD(&htim2, 65535);
+            }
+        }
         this->set_motor_speed(this->rampedrpm);
     }
 

@@ -28,16 +28,16 @@ std::array<IPeripheral*, 3> motorgpio
 
 
 
-ADC VBUS(&hadc1, (uint32_t)ADC_CHANNEL_1);
-ADC NTC(&hadc1, (uint32_t)ADC_CHANNEL_2);
+ADC VBUS(&hadc1, (uint32_t)ADC_CHANNEL_1);   //PC0
+ADC NTC(&hadc1, (uint32_t)ADC_CHANNEL_2);   //PC1
 
-ADC CURRFDBK_1(&hadc1, (uint32_t)ADC_CHANNEL_8);
-ADC CURRFDBK_2(&hadc1, (uint32_t)ADC_CHANNEL_3);
-ADC CURRFDBK_3(&hadc1, (uint32_t)ADC_CHANNEL_4);
+ADC CURRFDBK_1(&hadc1, (uint32_t)ADC_CHANNEL_8); //PA3
+ADC CURRFDBK_2(&hadc1, (uint32_t)ADC_CHANNEL_3); //PC2
+ADC CURRFDBK_3(&hadc1, (uint32_t)ADC_CHANNEL_4); //PC3
 
-//ADC BEMF_PHA_V(&hadc1, (uint32_t)ADC_CHANNEL_5);
-ADC BEMF_PHA_U(&hadc1, (uint32_t)ADC_CHANNEL_6);
-//ADC BEMF_PHA_W(&hadc1, (uint32_t)ADC_CHANNEL_7);
+ADC BEMF_PHA_V(&hadc1, (uint32_t)ADC_CHANNEL_15);//PB0
+ADC BEMF_PHA_U(&hadc1, (uint32_t)ADC_CHANNEL_6); //PA1
+ADC BEMF_PHA_W(&hadc1, (uint32_t)ADC_CHANNEL_16);//PB1
 
 
 Sensor sense_vbus(&VBUS, 16.0f, 0);
@@ -47,13 +47,13 @@ Sensor sense_curr_fdbk1(&CURRFDBK_1, 1.0f, 0.0f);
 Sensor sense_curr_fdbk2(&CURRFDBK_2, 1.0f, 0.0f);
 Sensor sense_curr_fdbk3(&CURRFDBK_3, 1.0f, 0.0f);
 
-//Sensor sense_bemf_v(&BEMF_PHA_V, 11.0f, 0.0f);
-Sensor sense_bemf_u(&BEMF_PHA_U, 11.0f, 0.0f);
-//Sensor sense_bemf_w(&BEMF_PHA_W, 11.0f, 0.0f);
+Sensor sense_bemf_v(&BEMF_PHA_V, 5.545f, 0.0f);
+Sensor sense_bemf_u(&BEMF_PHA_U, 5.545f, 0.0f);
+Sensor sense_bemf_w(&BEMF_PHA_W, 5.545f, 0.0f);
 
 std::array<Sensor*,8> motorsensors   //lvalues can be used here?
 {
-    &sense_vbus, &sense_ntc, &sense_curr_fdbk1, &sense_curr_fdbk2, &sense_curr_fdbk3, &sense_bemf_u
+    &sense_vbus, &sense_ntc, &sense_curr_fdbk1, &sense_curr_fdbk2, &sense_curr_fdbk3, &sense_bemf_u,&sense_bemf_v,&sense_bemf_w
 };
 
 enum class sensor_id : uint8_t

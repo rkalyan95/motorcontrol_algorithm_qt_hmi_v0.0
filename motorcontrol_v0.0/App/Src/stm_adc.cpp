@@ -6,7 +6,7 @@ extern "C" {
 }
 
 #include <Peripheral.h>
-static uint16_t dmalocalbuffer[4];
+static uint16_t dmalocalbuffer[8];
 static uint8_t dmadone = 0;
 uint8_t adcdmainterrupt;
 static bool dma_is_running = false; // Add this global/static
@@ -36,7 +36,7 @@ void ADC<channelnum_t,rawcount_t> :: init(void)
     if(this->periphraddress != nullptr && !dma_is_running)
     {
        // HAL_ADC_Start(this->periphraddress);
-       HAL_ADC_Start_DMA(this->periphraddress, (uint32_t *)dmalocalbuffer, 4);
+       HAL_ADC_Start_DMA(this->periphraddress, (uint32_t *)dmalocalbuffer, 8);
        dmadone = 0;
        dma_is_running = true;
     }
@@ -70,6 +70,8 @@ void ADC<channelnum_t,rawcount_t> :: read(void)
             case ADC_CHANNEL_3: index = 3; break; // CURR2
             case ADC_CHANNEL_4: index = 4; break; // CURR3
             case ADC_CHANNEL_6: index = 5; break; // BEMF_U
+            case ADC_CHANNEL_16: index = 7; break; // BEMF_U
+            case ADC_CHANNEL_15: index = 6; break; // BEMF_U
             default: return;
         }
         this->rawbuffer = dmalocalbuffer[index];

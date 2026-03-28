@@ -83,6 +83,7 @@ uint8_t commutation_stage_main = 6;
 float currentspeedrpm = 0.0f;
 float prevspeedrpm = 0.0f;
 float vbusvoltage = 0.0;
+uint8_t z_detected = 0;
 /* USER CODE END 0 */
 
 
@@ -100,6 +101,8 @@ void openloopcontrolmotor(void)
      MX_DMA_Init();
      MX_ADC1_Init();
      SystemClock_Config();
+   powerstage->rawbuffer = 1;
+   powerstage->write();
      __HAL_TIM_MOE_ENABLE(&htim1);
      mymotor->shutdown_all();
 
@@ -113,7 +116,7 @@ int main(void)
 {
    
   /* USER CODE BEGIN 1 */
-  uint8_t com_count = 0;
+  uint16_t com_count = 0;
   
   /* USER CODE END 1 */
 
@@ -124,13 +127,35 @@ int main(void)
   openloopcontrolmotor();
   HAL_Delay(2000);
   
-   powerstage->rawbuffer = 1;
-   powerstage->write();
-   
-   mymotor->align_motor();
-   HAL_Delay(500);
-   HAL_TIM_Base_Start_IT(&htim2);
 
+   mymotor->commutation_stage = 0;
+   mymotor->align_motor();
+   while(com_count <= 420)
+   {
+    mymotor->start_motor_openloop(50.0f);
+    mymotor->start_motor_commutation(mymotor->commutation_stage,0.75f);
+    
+    mymotor->commutation_stage++;
+    if(mymotor->commutation_stage==6)
+    {
+      mymotor->commutation_stage = 0;
+      com_count++;
+    }
+     HAL_Delay(5);
+   }
+   
+
+__HAL_TIM_SET_AUTORELOAD(&htim2, 39999);
+HAL_TIM_GenerateEvent(&htim2, TIM_EVENTSOURCE_UPDATE); 
+__HAL_TIM_SET_COUNTER(&htim2, 0);
+
+mymotor->motorsynch = 1; // This must block open-loop ARR writes
+z_detected = 0;
+mymotor->commutation_stage = 0; 
+__HAL_TIM_SET_COUNTER(&htim2, 0);
+   HAL_TIM_Base_Start_IT(&htim2);
+   HAL_TIM_OC_Start_IT(&htim1, TIM_CHANNEL_4);
+   
 while(1) 
 {
   
@@ -141,9 +166,9 @@ while(1)
      }
      else
      {
-        mymotor->start_motor_openloop(150.0f);
+        currentspeedrpm+=40.0f;
      }
-     HAL_Delay(10);
+     HAL_Delay(5000);
 }
 
   /* USER CODE END 3 */
@@ -230,20 +255,71 @@ void assert_failed(uint8_t *file, uint32_t line)
 
 #endif /* USE_FULL_ASSERT */
 
+extern "C" void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
+{
+    float ref_volt = mymotor->voltage_reference/2.0f;
+    uint32_t nextArr = 0;
+    bool triggred = 0;
+    if (htim->Instance == TIM1 && htim->Channel == HAL_TIM_ACTIVE_CHANNEL_4)
+    {    
+        // 2. Correct Time: Update physics and ramp logic every PWM cycle
+        mymotor->start_motor_openloop(currentspeedrpm);
+        if(z_detected==0)
+        {
+          if(mymotor->commutation_stage % 2 == 0)  
+          {
+              if(mymotor->back_emf < ref_volt)
+              {   
+                triggred = 1;
+                
+              }
+          }
+          else
+          {
+            if((mymotor->back_emf > ref_volt))
+            {
+                  triggred = 1;
+            }
+
+          }
+
+          if(triggred==1)
+          {
+            if(__HAL_TIM_GET_COUNTER(&htim2) > 10000) 
+           {
+              z_detected = 1;
+              nextArr = __HAL_TIM_GET_COUNTER(&htim2)<<1;
+              
+                if(nextArr > 12999)
+                {
+                  nextArr = 12999;
+                  
+                }
+                __HAL_TIM_SET_AUTORELOAD(&htim2,nextArr); 
+          }
+        }
+        }
+
+    }
+}
+
+
 extern "C" void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   /* Prevent unused argument(s) compilation warning */
 if (htim->Instance == TIM2)
 {
-  
-  mymotor->start_motor_commutation(commutation_stage_main,mymotor->calculated_duty_cycle);
-  commutation_stage_main++;
-  if(commutation_stage_main==6)
+  __HAL_TIM_SET_COUNTER(&htim2, 0);
+  if(z_detected==1)
   {
-      commutation_stage_main = 0;
+    z_detected = 0;
   }
-
-
+  mymotor->start_motor_commutation(mymotor->commutation_stage,mymotor->calculated_duty_cycle);
+  mymotor->commutation_stage++;
+  if(mymotor->commutation_stage==6)
+  {
+      mymotor->commutation_stage = 0;
+  }
 }
 }
 
