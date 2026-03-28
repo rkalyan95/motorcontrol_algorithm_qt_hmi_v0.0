@@ -130,7 +130,8 @@ int main(void)
 
    mymotor->commutation_stage = 0;
    mymotor->align_motor();
-   while(com_count <= 420)
+   
+   /*while(com_count <= 10)
    {
     mymotor->start_motor_openloop(50.0f);
     mymotor->start_motor_commutation(mymotor->commutation_stage,0.75f);
@@ -143,18 +144,18 @@ int main(void)
     }
      HAL_Delay(5);
    }
-   
+   */
 
 __HAL_TIM_SET_AUTORELOAD(&htim2, 39999);
 HAL_TIM_GenerateEvent(&htim2, TIM_EVENTSOURCE_UPDATE); 
 __HAL_TIM_SET_COUNTER(&htim2, 0);
 
-mymotor->motorsynch = 1; // This must block open-loop ARR writes
+mymotor->motorsynch = 0; // This must block open-loop ARR writes
 z_detected = 0;
 mymotor->commutation_stage = 0; 
 __HAL_TIM_SET_COUNTER(&htim2, 0);
-   HAL_TIM_Base_Start_IT(&htim2);
-   HAL_TIM_OC_Start_IT(&htim1, TIM_CHANNEL_4);
+HAL_TIM_Base_Start_IT(&htim2);
+HAL_TIM_OC_Start_IT(&htim1, TIM_CHANNEL_4);
    
 while(1) 
 {
@@ -260,10 +261,11 @@ extern "C" void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
     float ref_volt = mymotor->voltage_reference/2.0f;
     uint32_t nextArr = 0;
     bool triggred = 0;
+
     if (htim->Instance == TIM1 && htim->Channel == HAL_TIM_ACTIVE_CHANNEL_4)
     {    
-        // 2. Correct Time: Update physics and ramp logic every PWM cycle
-        mymotor->start_motor_openloop(currentspeedrpm);
+      
+        mymotor->start_motor_openloop(500.0f);
         if(z_detected==0)
         {
           if(mymotor->commutation_stage % 2 == 0)  
@@ -283,20 +285,20 @@ extern "C" void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 
           }
 
-          if(triggred==1)
+          if(triggred==1 && mymotor->motorsynch >= 2)
           {
             if(__HAL_TIM_GET_COUNTER(&htim2) > 10000) 
-           {
+            {
               z_detected = 1;
               nextArr = __HAL_TIM_GET_COUNTER(&htim2)<<1;
               
-                if(nextArr > 12999)
+                if(nextArr < 1999)
                 {
-                  nextArr = 12999;
+                  nextArr = 1999;
                   
                 }
                 __HAL_TIM_SET_AUTORELOAD(&htim2,nextArr); 
-          }
+            }
         }
         }
 

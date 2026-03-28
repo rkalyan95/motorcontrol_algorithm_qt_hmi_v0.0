@@ -53,6 +53,7 @@ class IMotor
         float calculated_duty_cycle = 0.0f;
         float temperature = 0.0f;
         uint8_t motorsynch = 0;
+        
     public:
         virtual void shutdown_all(void) = 0;
         virtual void align_motor(void) = 0;
@@ -64,7 +65,7 @@ class IMotor
         virtual void get_phase_current(uint8_t phase , float *curr)  = 0; 
         virtual void start_motor_commutation(uint8_t current_stage , float duty) = 0;
         virtual void start_motor_openloop(float targetrpm) = 0;
-
+        virtual void read_all_sensors(void) = 0;
 
 };
 
@@ -84,6 +85,7 @@ class BLDC : public IMotor
         virtual void get_phase_current(uint8_t phase , float *curr) override; 
         virtual void start_motor_commutation(uint8_t current_stage , float duty) override;
         virtual void start_motor_openloop(float targetrpm) override;
+        virtual void read_all_sensors(void) override;
 };
 
 

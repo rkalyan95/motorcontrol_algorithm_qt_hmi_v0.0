@@ -253,10 +253,18 @@ void BLDC::shutdown_all(void)
 
 void BLDC::align_motor(void)
 {
-    this->start_motor_commutation(0,0.50f);
-    HAL_Delay(500);
+    this->start_motor_commutation(0,0.90f);
+    HAL_Delay(50);
+    this->start_motor_commutation(1,0.90f);
+    HAL_Delay(50);
 }
 
+
+
+void BLDC :: read_all_sensors(void)
+{
+
+}
 /*
    In mechanical , frequency is RPM/60 
    in electroca; , frquencys is Fmech * PolePair
@@ -285,6 +293,7 @@ void BLDC::start_motor_openloop(float targetrpm)
         hbridge->get_fdbkcurrent(0, &hbridge->current_fdbk[0]);
         hbridge->get_fdbkcurrent(1, &hbridge->current_fdbk[1]);
         hbridge->get_fdbkcurrent(2, &hbridge->current_fdbk[2]);
+
         if(targetrpm>this->rampedrpm)
         {
             this->rampedrpm+=5.0f;
@@ -295,12 +304,17 @@ void BLDC::start_motor_openloop(float targetrpm)
         }
 
 
-        if(this->motorsynch==0)
+        if(this->motorsynch<3)
         {
 
-            //read here backemf and update sync flag if greater than 8v
+            //read here backemf and update sync flag if greater than 3.5v
+
             if(this->rampedrpm>10.0f)
             {
+                if(this->back_emf>3.5f)
+                {
+                    this->motorsynch++;
+                }
                 frequencyArrValue = (40000000.0f)/(this->rampedrpm*(float)this->polepair);
                 __HAL_TIM_SET_AUTORELOAD(&htim2, frequencyArrValue);
             }
