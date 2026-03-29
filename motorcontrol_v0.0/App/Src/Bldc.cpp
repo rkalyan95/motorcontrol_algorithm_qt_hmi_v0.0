@@ -263,7 +263,17 @@ void BLDC::align_motor(void)
 
 void BLDC :: read_all_sensors(void)
 {
-
+    if(hbridge!=nullptr)
+    {
+        this->voltage_reference  = 0.0f;
+        this->back_emf = 0.0f;
+        hbridge->get_vbus(&this->voltage_reference);
+        hbridge->get_temperature(&this->temperature);
+        hbridge->get_backemf(this->floating_phase, &this->back_emf);
+        hbridge->get_fdbkcurrent(0, &hbridge->current_fdbk[0]);
+        hbridge->get_fdbkcurrent(1, &hbridge->current_fdbk[1]);
+        hbridge->get_fdbkcurrent(2, &hbridge->current_fdbk[2]);
+    }
 }
 /*
    In mechanical , frequency is RPM/60 
@@ -287,31 +297,25 @@ void BLDC::start_motor_openloop(float targetrpm)
     
     if(hbridge!=nullptr)
     {
-        hbridge->get_vbus(&this->voltage_reference);
-        hbridge->get_temperature(&this->temperature);
-        hbridge->get_backemf(this->floating_phase, &this->back_emf);
-        hbridge->get_fdbkcurrent(0, &hbridge->current_fdbk[0]);
-        hbridge->get_fdbkcurrent(1, &hbridge->current_fdbk[1]);
-        hbridge->get_fdbkcurrent(2, &hbridge->current_fdbk[2]);
 
         if(targetrpm>this->rampedrpm)
         {
-            this->rampedrpm+=5.0f;
+            this->rampedrpm+=10.0f;
         }
         else if(targetrpm<this->rampedrpm)
         {
-            this->rampedrpm-=5.0f;
+            this->rampedrpm-=10.0f;
         }
 
 
-        if(this->motorsynch<3)
+        if(this->motorsynch<60)
         {
 
             //read here backemf and update sync flag if greater than 3.5v
 
             if(this->rampedrpm>10.0f)
             {
-                if(this->back_emf>3.5f)
+                if(this->back_emf>8.5f)
                 {
                     this->motorsynch++;
                 }
@@ -323,7 +327,7 @@ void BLDC::start_motor_openloop(float targetrpm)
                  __HAL_TIM_SET_AUTORELOAD(&htim2, 65535);
             }
         }
-        this->set_motor_speed(this->rampedrpm);
+        
     }
 
 }

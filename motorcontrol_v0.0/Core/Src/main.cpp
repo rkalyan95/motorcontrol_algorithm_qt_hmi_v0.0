@@ -83,7 +83,7 @@ uint8_t commutation_stage_main = 6;
 float currentspeedrpm = 0.0f;
 float prevspeedrpm = 0.0f;
 float vbusvoltage = 0.0;
-uint8_t z_detected = 0;
+volatile uint8_t z_detected = 0;
 /* USER CODE END 0 */
 
 
@@ -131,9 +131,9 @@ int main(void)
    mymotor->commutation_stage = 0;
    mymotor->align_motor();
    
-   /*while(com_count <= 10)
+   /*while(com_count <= 100)
    {
-    mymotor->start_motor_openloop(50.0f);
+    mymotor->start_motor_openloop(150.0f);
     mymotor->start_motor_commutation(mymotor->commutation_stage,0.75f);
     
     mymotor->commutation_stage++;
@@ -167,9 +167,9 @@ while(1)
      }
      else
      {
-        currentspeedrpm+=40.0f;
+       // currentspeedrpm+=40.0f;
      }
-     HAL_Delay(5000);
+    // HAL_Delay(5000);
 }
 
   /* USER CODE END 3 */
@@ -258,14 +258,28 @@ void assert_failed(uint8_t *file, uint32_t line)
 
 extern "C" void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 {
-    float ref_volt = mymotor->voltage_reference/2.0f;
+    
+  float ref_volt;
+    
     uint32_t nextArr = 0;
     bool triggred = 0;
 
     if (htim->Instance == TIM1 && htim->Channel == HAL_TIM_ACTIVE_CHANNEL_4)
-    {    
-      
-        mymotor->start_motor_openloop(500.0f);
+    { 
+         
+        mymotor->read_all_sensors();
+        ref_volt = mymotor->voltage_reference/2.0f;
+        
+        if(mymotor->motorsynch<60)
+        {
+            mymotor->start_motor_openloop(150.0f);
+        }
+        else
+        {
+          mymotor->start_motor_openloop(150.0f);
+        }
+        mymotor->set_motor_speed(mymotor->rampedrpm);
+
         if(z_detected==0)
         {
           if(mymotor->commutation_stage % 2 == 0)  
@@ -284,20 +298,24 @@ extern "C" void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
             }
 
           }
-
-          if(triggred==1 && mymotor->motorsynch >= 2)
+  
+          if(triggred==1 && mymotor->motorsynch >= 60)
           {
-            if(__HAL_TIM_GET_COUNTER(&htim2) > 10000) 
+            uint32_t blanking_window = __HAL_TIM_GET_AUTORELOAD(&htim2) / 10;
+            uint32_t counter = __HAL_TIM_GET_COUNTER(&htim2);
+            if( counter > blanking_window*4) 
             {
-              z_detected = 1;
-              nextArr = __HAL_TIM_GET_COUNTER(&htim2)<<1;
               
-                if(nextArr < 1999)
+              nextArr = counter*2;
+              
+                if(nextArr < 199)
                 {
-                  nextArr = 1999;
+                  nextArr = 199;
                   
                 }
                 __HAL_TIM_SET_AUTORELOAD(&htim2,nextArr); 
+                __HAL_TIM_SET_COUNTER(&htim2, 0);
+                z_detected = 1;
             }
         }
         }
@@ -311,11 +329,8 @@ extern "C" void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* Prevent unused argument(s) compilation warning */
 if (htim->Instance == TIM2)
 {
-  __HAL_TIM_SET_COUNTER(&htim2, 0);
-  if(z_detected==1)
-  {
-    z_detected = 0;
-  }
+
+  z_detected = 0;
   mymotor->start_motor_commutation(mymotor->commutation_stage,mymotor->calculated_duty_cycle);
   mymotor->commutation_stage++;
   if(mymotor->commutation_stage==6)

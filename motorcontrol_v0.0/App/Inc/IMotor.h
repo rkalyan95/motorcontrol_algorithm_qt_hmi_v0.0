@@ -52,7 +52,8 @@ class IMotor
         uint8_t floating_phase;
         float calculated_duty_cycle = 0.0f;
         float temperature = 0.0f;
-        uint8_t motorsynch = 0;
+        volatile uint16_t motorsynch = 0;
+        float rampedrpm = 150.0f;
         
     public:
         virtual void shutdown_all(void) = 0;
@@ -72,7 +73,7 @@ class IMotor
 class BLDC : public IMotor
 {
     private:
-        float rampedrpm = 150.0f;
+        
     public:
         BLDC(IMotorDriver *motordriver);
         virtual void set_motor_speed(float rpm) override;
