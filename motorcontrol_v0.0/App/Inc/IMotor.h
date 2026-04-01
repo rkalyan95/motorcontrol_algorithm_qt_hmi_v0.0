@@ -36,7 +36,7 @@ class IMotor
         static constexpr float kv_rating = 260.0f;
         static constexpr float ke_const = 0.0367f;
         static constexpr float kt_const = 0.0367f;
-        static constexpr float rotor_inertia = 0.0000025f;
+        static constexpr float rotor_inertia = 0.000025f;
         static constexpr float slot_count = 12.0f;
         static constexpr float viscous_friction = 0.000001f;
         static constexpr float static_load_tq = 0.017f;
@@ -48,12 +48,13 @@ class IMotor
         float back_emf;
         float applied_voltage;
         float voltage_reference;
-        uint8_t commutation_stage;
+        volatile uint8_t commutation_stage;
         uint8_t floating_phase;
-        float calculated_duty_cycle = 0.0f;
+        volatile float calculated_duty_cycle = 0.0f;
         float temperature = 0.0f;
         volatile uint16_t motorsynch = 0;
         float rampedrpm = 150.0f;
+        float speed_integral = 0.0f;
         
     public:
         virtual void shutdown_all(void) = 0;
@@ -67,6 +68,7 @@ class IMotor
         virtual void start_motor_commutation(uint8_t current_stage , float duty) = 0;
         virtual void start_motor_openloop(float targetrpm) = 0;
         virtual void read_all_sensors(void) = 0;
+        virtual void run_speed_pid(float target_rpm) = 0;
 
 };
 
@@ -87,6 +89,7 @@ class BLDC : public IMotor
         virtual void start_motor_commutation(uint8_t current_stage , float duty) override;
         virtual void start_motor_openloop(float targetrpm) override;
         virtual void read_all_sensors(void) override;
+        void run_speed_pid(float target_rpm) override;
 };
 
 

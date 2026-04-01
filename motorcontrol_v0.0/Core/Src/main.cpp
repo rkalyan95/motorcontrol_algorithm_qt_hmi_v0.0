@@ -91,21 +91,29 @@ volatile uint8_t z_detected = 0;
      
 
 
-void openloopcontrolmotor(void)
+void peripherals_init(void)
 {
 
      HAL_Init();
+     SystemClock_Config();
      MX_GPIO_Init();
      MX_TIM1_Init();
      MX_TIM2_Init();
      MX_DMA_Init();
      MX_ADC1_Init();
-     SystemClock_Config();
-   powerstage->rawbuffer = 1;
+     
+   powerstage->rawbuffer = 0;
+   myled->rawbuffer = 0;
    powerstage->write();
-     __HAL_TIM_MOE_ENABLE(&htim1);
-     mymotor->shutdown_all();
-
+   myled->write();
+   __HAL_TIM_MOE_DISABLE(&htim1);
+   mymotor->shutdown_all();
+   mymotor->commutation_stage = 0;
+  powerstage->rawbuffer = 0x01U;
+  powerstage->write();
+   mymotor->align_motor();
+   mymotor->motorsynch = 0; 
+   z_detected = 0;
 }
 
 /**
@@ -124,42 +132,11 @@ int main(void)
    
 
   /* USER CODE BEGIN WHILE */
-  openloopcontrolmotor();
-  HAL_Delay(2000);
-  
-
-   mymotor->commutation_stage = 0;
-   mymotor->align_motor();
-   
-   /*while(com_count <= 100)
-   {
-    mymotor->start_motor_openloop(150.0f);
-    mymotor->start_motor_commutation(mymotor->commutation_stage,0.75f);
-    
-    mymotor->commutation_stage++;
-    if(mymotor->commutation_stage==6)
-    {
-      mymotor->commutation_stage = 0;
-      com_count++;
-    }
-     HAL_Delay(5);
-   }
-   */
-
-__HAL_TIM_SET_AUTORELOAD(&htim2, 39999);
-HAL_TIM_GenerateEvent(&htim2, TIM_EVENTSOURCE_UPDATE); 
-__HAL_TIM_SET_COUNTER(&htim2, 0);
-
-mymotor->motorsynch = 0; // This must block open-loop ARR writes
-z_detected = 0;
-mymotor->commutation_stage = 0; 
-__HAL_TIM_SET_COUNTER(&htim2, 0);
-HAL_TIM_Base_Start_IT(&htim2);
-HAL_TIM_OC_Start_IT(&htim1, TIM_CHANNEL_4);
-   
+  peripherals_init();
+  HAL_Delay(10000);
+  HAL_TIM_Base_Start_IT(&htim2);
 while(1) 
 {
-  
      powerstage->read();
      if(powerstage->rawbuffer == 0)
     {
@@ -167,9 +144,8 @@ while(1)
      }
      else
      {
-       // currentspeedrpm+=40.0f;
+
      }
-    // HAL_Delay(5000);
 }
 
   /* USER CODE END 3 */
@@ -258,85 +234,55 @@ void assert_failed(uint8_t *file, uint32_t line)
 
 extern "C" void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 {
-    
-  float ref_volt;
-    
-    uint32_t nextArr = 0;
-    bool triggred = 0;
-
-    if (htim->Instance == TIM1 && htim->Channel == HAL_TIM_ACTIVE_CHANNEL_4)
-    { 
-         
-        mymotor->read_all_sensors();
-        ref_volt = mymotor->voltage_reference/2.0f;
-        
-        if(mymotor->motorsynch<60)
-        {
-            mymotor->start_motor_openloop(150.0f);
-        }
-        else
-        {
-          mymotor->start_motor_openloop(150.0f);
-        }
-        mymotor->set_motor_speed(mymotor->rampedrpm);
-
-        if(z_detected==0)
-        {
-          if(mymotor->commutation_stage % 2 == 0)  
-          {
-              if(mymotor->back_emf < ref_volt)
-              {   
-                triggred = 1;
-                
-              }
-          }
-          else
-          {
-            if((mymotor->back_emf > ref_volt))
-            {
-                  triggred = 1;
-            }
-
-          }
-  
-          if(triggred==1 && mymotor->motorsynch >= 60)
-          {
-            uint32_t blanking_window = __HAL_TIM_GET_AUTORELOAD(&htim2) / 10;
-            uint32_t counter = __HAL_TIM_GET_COUNTER(&htim2);
-            if( counter > blanking_window*4) 
-            {
-              
-              nextArr = counter*2;
-              
-                if(nextArr < 199)
-                {
-                  nextArr = 199;
-                  
-                }
-                __HAL_TIM_SET_AUTORELOAD(&htim2,nextArr); 
-                __HAL_TIM_SET_COUNTER(&htim2, 0);
-                z_detected = 1;
-            }
-        }
-        }
-
-    }
+   /* Use this timer to sample the data tim1 channel 4*/
 }
 
 
 extern "C" void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-  /* Prevent unused argument(s) compilation warning */
-if (htim->Instance == TIM2)
-{
+  /* use this timer to update the commutation stage
+     let us begin to implement a simple open loop control 
 
-  z_detected = 0;
-  mymotor->start_motor_commutation(mymotor->commutation_stage,mymotor->calculated_duty_cycle);
-  mymotor->commutation_stage++;
-  if(mymotor->commutation_stage==6)
+   In mechanical , frequency is RPM/60 
+   in electroca; , frquencys is Fmech * PolePair
+   in commutation , frequency is Felct*6
+
+   in timer terms , frequency is Fcommut = Fin/Arr
+   here Fin = FinTimerClk / Prescaler = 4000000/100 = 40000
+   so 
+   Arr = Fin / Fcommut  = 40000/2000 = 20
+   so 
+   Arr can be 2000 initially to achieve 200Hz of commutation for open loop 
+   to increase speed we will increase the commutation frequency , 
+   which will further decrease the Arr 
+
+   the below information is useless as of now 
+
+   Here 
+
+
+   Fcommut = Felectrical*6 = Fmech*PolePair*6 =  (Rpm/60)*(PolePair)*(6)
+                                               (Rpm * PolePair*0.1)
+
+  Fcommut = Rpm*PolePair*0.1
+  Fcommut = 1*7*0.1 = 1.4 = 1.4
+
+  so 
+  Arr =  Fin/Fcommut = 40000/0.7 = 1428
+  
+
+
+*/
+
+  if(htim==&htim2)
   {
-      mymotor->commutation_stage = 0;
+    myled->rawbuffer = ~myled->rawbuffer & 0x01;
+    myled->write();
+    
+    mymotor->start_motor_commutation(mymotor->commutation_stage,0.75f);
+    mymotor->commutation_stage++;
+    mymotor->commutation_stage = (mymotor->commutation_stage % 6); 
+    __HAL_TIM_CLEAR_IT(htim,TIM_IT_UPDATE);
   }
-}
 }
 

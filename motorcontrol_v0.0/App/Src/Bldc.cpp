@@ -275,22 +275,7 @@ void BLDC :: read_all_sensors(void)
         hbridge->get_fdbkcurrent(2, &hbridge->current_fdbk[2]);
     }
 }
-/*
-   In mechanical , frequency is RPM/60 
-   in electroca; , frquencys is Fmech * PolePair
-   in commutation , frequency is Felct*6
 
-   in timer terms , frequency is Fcommut = Fin/Arr
-   so 
-   Arr = Fin / Fcommut 
-   Here 
-   Fcommut = Felectrical*6 = Fmech*PolePair*6 =  (Rpm/60)*(PolePair)*(6)
-                                               (Rpm * PolePair*0.1)
-
-   Arr =  4000000/(Fcommut) = 40000000/Rpm*PolePair
-
-
-*/
 void BLDC::start_motor_openloop(float targetrpm)
 {
     uint32_t frequencyArrValue = 0;
@@ -313,13 +298,13 @@ void BLDC::start_motor_openloop(float targetrpm)
 
             //read here backemf and update sync flag if greater than 3.5v
 
-            if(this->rampedrpm>10.0f)
+            if(this->rampedrpm>1.0f)
             {
-                if(this->back_emf>8.5f)
+                if(this->back_emf>2.5f)
                 {
                     this->motorsynch++;
                 }
-                frequencyArrValue = (40000000.0f)/(this->rampedrpm*(float)this->polepair);
+                frequencyArrValue = 5714285/this->rampedrpm;
                 __HAL_TIM_SET_AUTORELOAD(&htim2, frequencyArrValue);
             }
             else
@@ -330,4 +315,10 @@ void BLDC::start_motor_openloop(float targetrpm)
         
     }
 
+}
+
+
+
+void BLDC::run_speed_pid(float target_rpm) {
+   
 }
