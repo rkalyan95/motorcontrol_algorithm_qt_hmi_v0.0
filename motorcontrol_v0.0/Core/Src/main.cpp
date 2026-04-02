@@ -81,9 +81,11 @@ IPeripheral *myled = &DefaultLed;
 IPeripheral *powerstage = &EnabePower;
 uint8_t commutation_stage_main = 6;
 float currentspeedrpm = 0.0f;
+float rampeduprpm = 10.0f;
 float prevspeedrpm = 0.0f;
 float vbusvoltage = 0.0;
 volatile uint8_t z_detected = 0;
+void run_openloop_control(float targetrpm);
 /* USER CODE END 0 */
 
 
@@ -133,8 +135,12 @@ int main(void)
 
   /* USER CODE BEGIN WHILE */
   peripherals_init();
-  HAL_Delay(10000);
+  HAL_Delay(1000);
   HAL_TIM_Base_Start_IT(&htim2);
+  float targetrpm = 400.0f;
+
+  run_openloop_control(targetrpm);
+
 while(1) 
 {
      powerstage->read();
@@ -145,7 +151,10 @@ while(1)
      else
      {
 
+        
+
      }
+     
 }
 
   /* USER CODE END 3 */
@@ -237,6 +246,41 @@ extern "C" void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
    /* Use this timer to sample the data tim1 channel 4*/
 }
 
+void run_openloop_control(float targetrpm)
+{
+  uint16_t countervalue = 0;
+  uint32_t input_clk = 4000000;
+  uint32_t prescaler = htim2.Init.Prescaler;
+  uint32_t fin = input_clk/prescaler;
+  uint32_t currentArr = 0;
+  currentspeedrpm = targetrpm;
+  do{
+    if(currentspeedrpm>rampeduprpm)
+    {
+      currentspeedrpm = currentspeedrpm*0.75f;
+    }
+    else
+    {
+      
+    }
+    uint32_t fcommut = (currentspeedrpm*mymotor->polepair)/10;
+    if(fcommut>1350)
+    {
+      fcommut = 1350;
+    }
+    uint16_t arrvalue = (uint16_t)fin/fcommut;
+
+    __HAL_TIM_SetAutoreload(&htim2,arrvalue);
+    HAL_Delay(50);
+ }while(currentspeedrpm>rampeduprpm);
+ 
+   currentArr = __HAL_TIM_GET_AUTORELOAD(&htim2);
+
+   currentspeedrpm = (float)((fin * 10) / (currentArr*mymotor->polepair));
+   
+   myled->rawbuffer = ~myled->rawbuffer & 0x01;
+   myled->write();
+}
 
 extern "C" void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
@@ -265,19 +309,27 @@ extern "C" void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
                                                (Rpm * PolePair*0.1)
 
   Fcommut = Rpm*PolePair*0.1
+  fcommut max  = 2000*7*0.1 = 1400
+  Arr = Fin/Fcommut 
+
+  1. Fin = input_clk/prescaler+1 = 4*10^6/99+1
+  2. Fcommut = Rpm * PolePar * 0.1
+  3. Arr = Fin/Fcommut
+
   Fcommut = 1*7*0.1 = 1.4 = 1.4
 
   so 
   Arr =  Fin/Fcommut = 40000/0.7 = 1428
   
-
+  base arr = 57142 , the count which makes this motor run at 1rpm
+  if we divide the base arr by 2 , we will get the count which makes this motor run at 2rpm
+  for one complete rotation , the function would be called 42 times for 7 pole 
+  6*polepair = 42
 
 */
 
   if(htim==&htim2)
-  {
-    myled->rawbuffer = ~myled->rawbuffer & 0x01;
-    myled->write();
+{
     
     mymotor->start_motor_commutation(mymotor->commutation_stage,0.75f);
     mymotor->commutation_stage++;

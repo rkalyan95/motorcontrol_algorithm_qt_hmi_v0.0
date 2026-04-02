@@ -254,9 +254,8 @@ void BLDC::shutdown_all(void)
 void BLDC::align_motor(void)
 {
     this->start_motor_commutation(0,0.90f);
-    HAL_Delay(50);
-    this->start_motor_commutation(1,0.90f);
-    HAL_Delay(50);
+    HAL_Delay(500);
+    this->commutation_stage++;
 }
 
 
