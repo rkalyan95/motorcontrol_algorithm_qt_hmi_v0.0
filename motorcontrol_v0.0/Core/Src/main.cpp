@@ -334,7 +334,7 @@ void run_pid_loop(float targetrpm, float currentrpm)
     mymotor->set_motor_speed(correction);
     //mymotor->calculated_duty_cycle += correction;
 
-    if(mymotor->calculated_duty_cycle > 0.90f) mymotor->calculated_duty_cycle = 0.90f;
+    if(mymotor->calculated_duty_cycle > 0.95f) mymotor->calculated_duty_cycle = 0.95f;
     if(mymotor->calculated_duty_cycle < 0.35f) mymotor->calculated_duty_cycle = 0.37f;
 
     dutycyclenew = mymotor->calculated_duty_cycle;
@@ -368,7 +368,7 @@ uint32_t closed_loop_control(float target_speed)
         {
 
             currentcount = __HAL_TIM_GET_COUNTER(&htim2);
-            actual_rpm = (8000.0f * 10.0f) / (float)((currentcount * mymotor->polepair));
+            actual_rpm = (10000000.0f * 10.0f) / (float)((currentcount * mymotor->polepair));
             currentarr = currentcount*2;
 
             blankingth = (blankingpercent*prevarr)/100;
@@ -421,7 +421,7 @@ extern "C" void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
           if (!openloop && z_detected == 1 )
                   {
 
-                      closed_loop_control(700.0f); 
+                      closed_loop_control(1700.0f); 
 
                         
 
