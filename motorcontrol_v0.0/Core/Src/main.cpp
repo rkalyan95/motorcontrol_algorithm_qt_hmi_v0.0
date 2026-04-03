@@ -81,16 +81,20 @@ IPeripheral *myled = &DefaultLed;
 IPeripheral *powerstage = &EnabePower;
 uint8_t commutation_stage_main = 6;
 float currentspeedrpm = 0.0f;
-float rampeduprpm = 10.0f;
+float rampeduprpm = 1.0f;
 float prevspeedrpm = 0.0f;
 float vbusvoltage = 0.0;
+
+uint32_t prevarr = 0;
 volatile uint8_t z_detected = 0;
 void run_openloop_control(float targetrpm);
 /* USER CODE END 0 */
-
-
-     
-     
+  uint16_t countervalue = 0;
+  uint32_t input_clk = 80000000;
+  uint32_t prescaler;
+  uint32_t fin;
+  uint16_t currentarr;   
+  uint32_t fcommut;   
 
 
 void peripherals_init(void)
@@ -109,6 +113,7 @@ void peripherals_init(void)
    powerstage->write();
    myled->write();
    __HAL_TIM_MOE_DISABLE(&htim1);
+   
    mymotor->shutdown_all();
    mymotor->commutation_stage = 0;
   powerstage->rawbuffer = 0x01U;
@@ -135,8 +140,15 @@ int main(void)
 
   /* USER CODE BEGIN WHILE */
   peripherals_init();
+  HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
   HAL_Delay(1000);
+
   HAL_TIM_Base_Start_IT(&htim2);
+
+  __HAL_TIM_MOE_ENABLE(&htim1);
+  // Start the motor channels normally
+// Start Channel 4 specifically to trigger the Interrupt
+HAL_TIM_OC_Start_IT(&htim1, TIM_CHANNEL_4);
   float targetrpm = 400.0f;
 
   run_openloop_control(targetrpm);
@@ -183,7 +195,13 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.MSIState = RCC_MSI_ON;
   RCC_OscInitStruct.MSICalibrationValue = 0;
   RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_6;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_MSI;
+  RCC_OscInitStruct.PLL.PLLM = 1;
+  RCC_OscInitStruct.PLL.PLLN = 40;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV7;
+  RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
+  RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -193,12 +211,12 @@ void SystemClock_Config(void)
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_MSI;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
   {
     Error_Handler();
   }
@@ -241,18 +259,42 @@ void assert_failed(uint8_t *file, uint32_t line)
 
 #endif /* USE_FULL_ASSERT */
 
-extern "C" void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
+inline void updatezerodetection(void)
 {
-   /* Use this timer to sample the data tim1 channel 4*/
+    if(mymotor->commutation_stage%2==0)
+        {
+          /*Rising Phase*/
+          if(mymotor->back_emf > mymotor->voltage_reference/2.0f)
+          {
+            z_detected = 1;
+            mymotor->motorsynch++;
+          }
+        }
+        else
+        {
+          /*Falling Phase*/
+         if(mymotor->back_emf < mymotor->voltage_reference/2.0f)
+          {
+            z_detected = 1;
+            mymotor->motorsynch++;
+          }
+        }
+
 }
+
+
+inline static void speedtoarr(float targetrpm)
+{
+  prescaler = htim2.Init.Prescaler;
+  fin = input_clk/prescaler;
+  fcommut = (currentspeedrpm*mymotor->polepair)/10;
+
+  currentarr = (uint16_t)fin/(fcommut+1);
+}
+
 
 void run_openloop_control(float targetrpm)
 {
-  uint16_t countervalue = 0;
-  uint32_t input_clk = 4000000;
-  uint32_t prescaler = htim2.Init.Prescaler;
-  uint32_t fin = input_clk/prescaler;
-  uint32_t currentArr = 0;
   currentspeedrpm = targetrpm;
   do{
     if(currentspeedrpm>rampeduprpm)
@@ -263,24 +305,52 @@ void run_openloop_control(float targetrpm)
     {
       
     }
-    uint32_t fcommut = (currentspeedrpm*mymotor->polepair)/10;
-    if(fcommut>1350)
-    {
-      fcommut = 1350;
-    }
-    uint16_t arrvalue = (uint16_t)fin/fcommut;
+    speedtoarr(currentspeedrpm);
+    __HAL_TIM_SetAutoreload(&htim2,currentarr);
+  
+ }while(mymotor->motorsynch<600);
 
-    __HAL_TIM_SetAutoreload(&htim2,arrvalue);
-    HAL_Delay(50);
- }while(currentspeedrpm>rampeduprpm);
- 
-   currentArr = __HAL_TIM_GET_AUTORELOAD(&htim2);
 
-   currentspeedrpm = (float)((fin * 10) / (currentArr*mymotor->polepair));
    
    myled->rawbuffer = ~myled->rawbuffer & 0x01;
    myled->write();
 }
+
+
+uint32_t pid_speed_control(float target_speed)
+{
+
+  
+
+  /* 1. calcluate the current speed 
+     2. calculate the error between current and target speed : error
+     3. apply KP to the error : kp*error
+     4. do the integral/sum of error : integrator +=error*dt 
+     5. apply Ki to the derivative of error : ki*error;
+     6. calculate final output of speed = kp*error + ki*integrator : return the final arr count/commutation freq based on calculation 
+     7. call this function inside isr and update the arr value
+     8. take care of windup logics and stuff
+     lets do first with PI control
+
+     dt = fin(1/(arr2+1)-1/(arr1+1);
+
+
+     */
+
+     
+
+}
+
+extern "C" void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  static uint32_t counter = 0;
+    if (htim->Instance == TIM1 && htim->Channel == HAL_TIM_ACTIVE_CHANNEL_4)
+    {
+          mymotor->read_all_sensors();
+          updatezerodetection();
+    }
+}
+
 
 extern "C" void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
@@ -292,7 +362,7 @@ extern "C" void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
    in commutation , frequency is Felct*6
 
    in timer terms , frequency is Fcommut = Fin/Arr
-   here Fin = FinTimerClk / Prescaler = 4000000/100 = 40000
+   here Fin = FinTimerClk / Prescaler = 80000000/100 = 800000
    so 
    Arr = Fin / Fcommut  = 40000/2000 = 20
    so 
@@ -331,10 +401,12 @@ extern "C" void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   if(htim==&htim2)
 {
     
-    mymotor->start_motor_commutation(mymotor->commutation_stage,0.75f);
+    mymotor->start_motor_commutation(mymotor->commutation_stage,0.55f);
     mymotor->commutation_stage++;
     mymotor->commutation_stage = (mymotor->commutation_stage % 6); 
+    z_detected = 0;
     __HAL_TIM_CLEAR_IT(htim,TIM_IT_UPDATE);
   }
+    
 }
 
