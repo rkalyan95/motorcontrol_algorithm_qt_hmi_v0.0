@@ -81,22 +81,27 @@ IPeripheral *myled = &DefaultLed;
 IPeripheral *powerstage = &EnabePower;
 uint8_t commutation_stage_main = 6;
 float currentspeedrpm = 0.0f;
-float rampeduprpm = 1.0f;
+float rampeduprpm = 300.0f;
 float prevspeedrpm = 0.0f;
 float vbusvoltage = 0.0;
 
 uint32_t prevarr = 0;
 volatile uint8_t z_detected = 0;
 void run_openloop_control(float targetrpm);
+uint32_t closed_loop_control(float target_speed);
 /* USER CODE END 0 */
   uint16_t countervalue = 0;
-  uint32_t input_clk = 80000000;
+  float input_clk = 80000000.0f;
   uint32_t prescaler;
-  uint32_t fin;
-  uint16_t currentarr;   
-  uint32_t fcommut;   
+  float  fin;
+  uint32_t currentarr;   
+  float fcommut;   
+  volatile bool openloop = true;
+float Kp = 0.005f;  // Proportional gain (adjust based on motor response)
+float Ki = 0.002f; // Integral gain
+float integral_error = 0.0f;
 
-
+float dutycyclenew = 0.35f;
 void peripherals_init(void)
 {
 
@@ -140,7 +145,7 @@ int main(void)
 
   /* USER CODE BEGIN WHILE */
   peripherals_init();
-  HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
+  //HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
   HAL_Delay(1000);
 
   HAL_TIM_Base_Start_IT(&htim2);
@@ -149,8 +154,8 @@ int main(void)
   // Start the motor channels normally
 // Start Channel 4 specifically to trigger the Interrupt
 HAL_TIM_OC_Start_IT(&htim1, TIM_CHANNEL_4);
-  float targetrpm = 400.0f;
-
+  float targetrpm = 300.0f;
+  
   run_openloop_control(targetrpm);
 
 while(1) 
@@ -162,9 +167,6 @@ while(1)
      }
      else
      {
-
-        
-
      }
      
 }
@@ -286,10 +288,10 @@ inline void updatezerodetection(void)
 inline static void speedtoarr(float targetrpm)
 {
   prescaler = htim2.Init.Prescaler;
-  fin = input_clk/prescaler;
-  fcommut = (currentspeedrpm*mymotor->polepair)/10;
+  fin = (float)(input_clk/(float)prescaler);
+  fcommut = (float)((currentspeedrpm*(float)mymotor->polepair)/10.0f);
 
-  currentarr = (uint16_t)fin/(fcommut+1);
+  currentarr = (uint32_t)(fin/(fcommut));
 }
 
 
@@ -307,47 +309,123 @@ void run_openloop_control(float targetrpm)
     }
     speedtoarr(currentspeedrpm);
     __HAL_TIM_SetAutoreload(&htim2,currentarr);
-  
- }while(mymotor->motorsynch<600);
+   prevarr = currentarr;
+   HAL_Delay(50);
+ }while(mymotor->motorsynch<6000);
 
 
    
    myled->rawbuffer = ~myled->rawbuffer & 0x01;
    myled->write();
+   openloop = false;
+   
 }
 
+void run_pid_loop(float targetrpm, float currentrpm)
+{
+    float error = targetrpm-currentrpm;
+    
+    integral_error+=error;
 
-uint32_t pid_speed_control(float target_speed)
+    if(integral_error > 100.0f) integral_error = 100.0f;
+    if(integral_error < -100.0f) integral_error = -100.0f;  
+
+    float correction = (Kp * error) + (Ki * integral_error);
+    mymotor->set_motor_speed(correction);
+    //mymotor->calculated_duty_cycle += correction;
+
+    if(mymotor->calculated_duty_cycle > 0.90f) mymotor->calculated_duty_cycle = 0.90f;
+    if(mymotor->calculated_duty_cycle < 0.35f) mymotor->calculated_duty_cycle = 0.37f;
+
+    dutycyclenew = mymotor->calculated_duty_cycle;
+}
+
+uint32_t closed_loop_control(float target_speed)
 {
 
-  
+  float actual_rpm = 0.0f;
+   uint32_t blankingpercent=40;
+   uint32_t blankingth = 0;
+   volatile uint32_t currentcount = 0;
 
-  /* 1. calcluate the current speed 
-     2. calculate the error between current and target speed : error
-     3. apply KP to the error : kp*error
-     4. do the integral/sum of error : integrator +=error*dt 
-     5. apply Ki to the derivative of error : ki*error;
-     6. calculate final output of speed = kp*error + ki*integrator : return the final arr count/commutation freq based on calculation 
-     7. call this function inside isr and update the arr value
-     8. take care of windup logics and stuff
-     lets do first with PI control
+    /* 
+       check for openloop bool flag 
+       check for z_detected true
+       once z_detected true 
+       read the current timer 2 which is the commutation timer count value
+       then use a blanking window calculation for 20% of the count 
+       if the count is greater than the blanking window amount 
+       set nextcommutation to true 
+       set the arr value to 2xcount read above
+       and handle the nextcommutation step in the timer 2 handler which is the commutation handler
 
-     dt = fin(1/(arr2+1)-1/(arr1+1);
+    
+      */
 
+      if(!openloop)
+      {
+        if(z_detected)
+        {
 
-     */
+            currentcount = __HAL_TIM_GET_COUNTER(&htim2);
+            actual_rpm = (8000.0f * 10.0f) / (float)((currentcount * mymotor->polepair));
+            currentarr = currentcount*2;
 
-     
+            blankingth = (blankingpercent*prevarr)/100;
+            if(currentcount>blankingth)
+            {
+              if(currentcount<100)
+             {
+                currentcount = 100;
+              }
+             // //if (currentcount >= (currentarr - 5)) 
+             // {
+                __HAL_TIM_SET_AUTORELOAD(&htim2, currentcount);
+             // }
+             // else 
+            //  {
+              //    __HAL_TIM_SET_AUTORELOAD(&htim2, currentarr);
+             /// }
+             //   prevarr = currentarr;
+              //  z_detected = false;
+                
+            }
 
+            
+            
+            run_pid_loop(target_speed, actual_rpm);
+
+        }
+        else
+        {
+          return 0;
+        }
+      }
+      else
+      {
+        return 0;
+      }
+
+      return currentarr;
 }
 
 extern "C" void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 {
   static uint32_t counter = 0;
+
     if (htim->Instance == TIM1 && htim->Channel == HAL_TIM_ACTIVE_CHANNEL_4)
     {
           mymotor->read_all_sensors();
           updatezerodetection();
+          
+          if (!openloop && z_detected == 1 )
+                  {
+
+                      closed_loop_control(700.0f); 
+
+                        
+
+                  }
     }
 }
 
@@ -400,8 +478,17 @@ extern "C" void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
   if(htim==&htim2)
 {
+  //__HAL_TIM_SET_COUNTER(&htim2, 0);
+    if (openloop)
+    {
+       mymotor->start_motor_commutation(mymotor->commutation_stage,0.35f);
+    }
+    else
+    {
+       mymotor->start_motor_commutation(mymotor->commutation_stage,dutycyclenew);
+    }
     
-    mymotor->start_motor_commutation(mymotor->commutation_stage,0.55f);
+
     mymotor->commutation_stage++;
     mymotor->commutation_stage = (mymotor->commutation_stage % 6); 
     z_detected = 0;

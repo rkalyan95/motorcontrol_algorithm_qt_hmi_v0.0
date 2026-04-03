@@ -65,7 +65,7 @@ class IHM16M1 : public IMotorDriver {
 public:
 	// --- Constants ---
 	// Hardcoded for 10kHz @ 4MHz Clock (400 ticks total)
-	static constexpr uint32_t PWM_PERIOD = 199; 
+	static constexpr uint32_t PWM_PERIOD = 19; 
 
 	// --- Constructor ---
 	IHM16M1();

@@ -30,6 +30,7 @@ BLDC :: BLDC(IMotorDriver *motordriver)
  */
 void BLDC::set_motor_speed(float target_rpm) 
 {
+    float backemflocal;
     if(hbridge!=nullptr)
     {
         
@@ -40,9 +41,9 @@ void BLDC::set_motor_speed(float target_rpm)
          {
                this->torque_rqstd = torque;   //0.0150
                 this->desired_I = this->torque_rqstd / this->kt_const;  //0.0150/.0367 = 0.40A
-                this->back_emf = angular_speed * this->ke_const;  ///2.094 * 0.0367 = 0.07V
+                backemflocal = angular_speed * this->ke_const;  ///2.094 * 0.0367 = 0.07V
 
-                this->applied_voltage = this->desired_I * this->resistance + this->back_emf; //0.40A*16 = 6.4V + 0.07 = 6.47V
+                this->applied_voltage = this->desired_I * this->resistance + backemflocal; //0.40A*16 = 6.4V + 0.07 = 6.47V
 
                 if(this->voltage_reference == 0.0f)
                 {
