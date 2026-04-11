@@ -15,19 +15,6 @@ Timer PwmPhaseU(&htim1, (uint32_t)TIM_CHANNEL_1);
 Timer PwmPhaseV(&htim1, (uint32_t)TIM_CHANNEL_2);
 Timer PwmPhaseW(&htim1, (uint32_t)TIM_CHANNEL_3);
 
-//configure timer 2 channel for using current reference setting
-std::array<IPeripheral*, 3> motortimers
-{
-    &PwmPhaseU, &PwmPhaseV, &PwmPhaseW
-};
-
-std::array<IPeripheral*, 3> motorgpio
-{
-    &EnablePhaseU, &EnablePhaseV, &EnablePhaseW
-};
-
-
-
 ADC VBUS(&hadc1, (uint32_t)ADC_CHANNEL_1);   //PC0
 ADC NTC(&hadc1, (uint32_t)ADC_CHANNEL_2);   //PC1
 
@@ -38,6 +25,17 @@ ADC CURRFDBK_3(&hadc1, (uint32_t)ADC_CHANNEL_4); //PC3
 ADC BEMF_PHA_V(&hadc1, (uint32_t)ADC_CHANNEL_15);//PB0
 ADC BEMF_PHA_U(&hadc1, (uint32_t)ADC_CHANNEL_6); //PA1
 ADC BEMF_PHA_W(&hadc1, (uint32_t)ADC_CHANNEL_16);//PB1
+
+//configure timer 2 channel for using current reference setting
+std::array<IPeripheral*, 3> motortimers
+{
+    &PwmPhaseU, &PwmPhaseV, &PwmPhaseW
+};
+
+std::array<IPeripheral*, 3> motorgpio
+{
+    &EnablePhaseU, &EnablePhaseV, &EnablePhaseW
+};
 
 
 Sensor sense_vbus(&VBUS, 16.0f, 0);
@@ -78,7 +76,6 @@ IHM16M1 :: IHM16M1()
     timer_periphs = motortimers;
     gpio_periphs = motorgpio;
     generic_sensors = motorsensors;
-
 
 }
 

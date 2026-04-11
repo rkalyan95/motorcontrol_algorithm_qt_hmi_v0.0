@@ -244,12 +244,12 @@ void BLDC::start_motor_commutation(uint8_t current_stage , float duty)
 
 void BLDC::shutdown_all(void)
 {
-    hbridge->disable_pwm_phase(0);  // u bot on
-    hbridge->disable_pwm_phase(1);  // u bot on
-    hbridge->disable_pwm_phase(2);  // u bot on
-    hbridge->set_pwm_duty_cycle(0,0.0f);
-    hbridge->set_pwm_duty_cycle(1,0.0f);
-    hbridge->set_pwm_duty_cycle(2,0.0f);
+    hbridge->disable_pwm_phase(0);  // u switch off
+    hbridge->disable_pwm_phase(1);  // v switch off
+    hbridge->disable_pwm_phase(2);  // w switch off
+    //hbridge->set_pwm_duty_cycle(0,0.0f);
+    //hbridge->set_pwm_duty_cycle(1,0.0f);
+    //hbridge->set_pwm_duty_cycle(2,0.0f);
 }
 
 void BLDC::align_motor(void)
