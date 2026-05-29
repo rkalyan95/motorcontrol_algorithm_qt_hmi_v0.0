@@ -51,12 +51,14 @@ class IMotor
         volatile uint8_t commutation_stage;
         uint8_t floating_phase;
         volatile float calculated_duty_cycle = 0.0f;
-        volatile uint32_t commutation_time_us = 0;
+         uint32_t commutation_time_us = 0;
         float temperature = 0.0f;
         volatile uint16_t motorsynch = 0;
         float rampedrpm = 300.0f;
         float speed_integral = 0.0f;
-        
+        const uint32_t acceleration_rate = 6500;
+        volatile uint32_t commutation_timer_ticks=100000;
+        uint8_t motor_state = 0;
     public:
         virtual void shutdown_all(void) = 0;
         virtual void align_motor(void) = 0;

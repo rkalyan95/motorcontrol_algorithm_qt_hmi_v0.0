@@ -1,8 +1,8 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
+  * @file           : main.cpp
+  * @brief          : Main application entry point for the Core project.
   ******************************************************************************
   * @attention
   *
@@ -68,12 +68,11 @@
 #include "motor.h"
 #endif
 /**
-  * @brief  The application entry point.
-  * @retval int
+  * @brief  Main application entry point.
+  * @retval int Always returns 0 in embedded infinite loop design.
   */
 int main(void)
-{
-   peripherals_init();
+{  peripherals_init();
    while(1)
    {
 

@@ -1,3 +1,9 @@
+/**
+ * @file ihm16m1.cpp
+ * @brief Motor driver and sensor interface implementation for the IHM16M1 board.
+ * @details Defines the low-level GPIO, timer, ADC, and sensor objects used by the BLDC motor controller.
+ */
+
 extern "C" {
     #include "gpio.h"
     #include "adc.h"
@@ -67,21 +73,24 @@ enum class sensor_id : uint8_t
 };
 
 
-/*Ihm16m1 here*/
-
-
+/**
+ * @brief Constructs an IHM16M1 motor board interface.
+ * @details Initializes the internal peripheral arrays for timers, GPIOs, and sensors.
+ */
 IHM16M1 :: IHM16M1()
 {
-
     timer_periphs = motortimers;
     gpio_periphs = motorgpio;
     generic_sensors = motorsensors;
-
 }
 
+/**
+ * @brief Sets the PWM duty cycle for a motor phase.
+ * @param phase Phase index for the PWM timer channel.
+ * @param duty Duty cycle between 0.0f and 1.0f.
+ */
 void IHM16M1 :: set_pwm_duty_cycle(uint8_t phase, float duty)
 {
-    
     if(phase > timer_periphs.size() || timer_periphs[phase]==nullptr)
     {
         return;
@@ -93,6 +102,10 @@ void IHM16M1 :: set_pwm_duty_cycle(uint8_t phase, float duty)
     this->timer_periphs[phase]->write();
     this->timer_periphs[phase]->init();
 }
+/**
+ * @brief Enables PWM output for a motor phase.
+ * @param phase Phase index for the enable GPIO.
+ */
 void IHM16M1 :: enable_pwm_phase(uint8_t phase) 
 {
     if(phase>gpio_periphs.size() || gpio_periphs[phase]==nullptr)
@@ -104,6 +117,10 @@ void IHM16M1 :: enable_pwm_phase(uint8_t phase)
     this->gpio_periphs[phase]->write();
 
 }
+/**
+ * @brief Disables PWM output for a motor phase.
+ * @param phase Phase index for the enable GPIO.
+ */
 void IHM16M1 :: disable_pwm_phase(uint8_t phase) 
 {
     if(gpio_periphs[phase]==nullptr)
@@ -148,6 +165,10 @@ void IHM16M1 :: init()
         }
     }
 }		
+/**
+ * @brief Reads the bus voltage sensor.
+ * @param vbus Pointer to store the measured bus voltage.
+ */
 void IHM16M1 :: get_vbus(float *vbus)
 {
     uint8_t index = static_cast<uint8_t>(sensor_id::VBUS_SENSOR_ID);
@@ -176,6 +197,11 @@ void IHM16M1 :: get_temperature(float *temperature)
     //generic_sensors[index]->uninit(); 
     *temperature = generic_sensors[index]->sensorphy;
 }
+/**
+ * @brief Reads the back-EMF voltage for a motor phase.
+ * @param phase Phase index (0=U, 1=V, 2=W).
+ * @param bemf Pointer to store the measured back-EMF voltage.
+ */
 void IHM16M1 :: get_backemf(uint8_t phase, float *bemf)
 {
      static constexpr std::array<sensor_id,3> sensoridmap
@@ -203,6 +229,11 @@ void IHM16M1 :: get_backemf(uint8_t phase, float *bemf)
 
 
 }			
+/**
+ * @brief Reads the feedback current for a motor phase.
+ * @param phase Phase index (0=U, 1=V, 2=W).
+ * @param fdbkcurrent Pointer to store the measured current.
+ */
 void IHM16M1 :: get_fdbkcurrent(uint8_t phase, float *fdbkcurrent)
 {
      static constexpr std::array<sensor_id,3> feedbackcurrmap
@@ -229,7 +260,9 @@ void IHM16M1 :: get_fdbkcurrent(uint8_t phase, float *fdbkcurrent)
      *fdbkcurrent = generic_sensors[index]->sensorphy;
 }	
 
-
+/**
+ * @brief Destroys the IHM16M1 interface instance.
+ */
 IHM16M1 :: ~IHM16M1()
 {
 

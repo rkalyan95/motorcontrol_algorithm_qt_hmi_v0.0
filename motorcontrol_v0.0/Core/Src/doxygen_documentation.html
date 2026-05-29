@@ -1,0 +1,257 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Doxygen Documentation - App and Core</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 24px; line-height: 1.6; color: #222; }
+header { margin-bottom: 30px; }
+h1 { font-size: 2.0em; margin-bottom: 0.2em; }
+section { margin-bottom: 40px; }
+h2 { border-bottom: 2px solid #ddd; padding-bottom: 0.3em; margin-top: 1.5em; }
+h3 { margin-top: 1.2em; }
+pre { background: #f5f5f5; padding: 12px; overflow-x: auto; border-radius: 6px; }
+.details { margin: 0.5em 0 1em 0; color: #555; }
+.param { margin-left: 1.2em; }
+.flowchart { margin: 16px 0 120px; border: 1px solid #d0d7de; padding: 12px; border-radius: 12px; background: #fafbfc; }
+.flowchart svg { width: 100%; height: auto; display: block; }
+.flowchart-box { fill: #ffffff; stroke: #5f6d7a; stroke-width: 1.5px; rx: 14; ry: 14; }
+.flowchart-text { font: 14px Arial, sans-serif; fill: #1f2937; }
+.flowchart-note { font: 13px Arial, sans-serif; fill: #475569; }
+.flowchart-arrow { stroke: #5f6d7a; stroke-width: 2px; fill: none; marker-end: url(#arrowhead); }
+</style>
+</head>
+<body>
+<header>
+<h1>Doxygen Documentation for App/Src and Core</h1>
+<p>Generated documentation summary from Doxygen-style comments in the App/Src and Core source files.</p>
+</header>
+<section>
+<h2>Firmware Flowchart</h2>
+<p class="details">High-level firmware execution flow from reset through initialization and timer-driven runtime control.</p>
+<div class="flowchart">
+<svg viewBox="0 0 940 980" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Firmware flowchart">
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#5f6d7a" />
+    </marker>
+  </defs>
+  <rect x="80" y="28" width="780" height="60" class="flowchart-box" />
+  <text x="500" y="62" text-anchor="middle" class="flowchart-text">Reset / Boot</text>
+  <line x1="500" y1="88" x2="500" y2="118" class="flowchart-arrow" />
+
+  <rect x="160" y="118" width="620" height="60" class="flowchart-box" />
+  <text x="500" y="150" text-anchor="middle" class="flowchart-text">main() → peripherals_init()</text>
+  <line x1="500" y1="178" x2="500" y2="218" class="flowchart-arrow" />
+
+  <rect x="160" y="218" width="620" height="60" class="flowchart-box" />
+  <text x="500" y="250" text-anchor="middle" class="flowchart-text">HAL_Init()</text>
+  <line x1="500" y1="278" x2="500" y2="318" class="flowchart-arrow" />
+
+  <rect x="160" y="318" width="620" height="60" class="flowchart-box" />
+  <text x="500" y="350" text-anchor="middle" class="flowchart-text">SystemClock_Config()</text>
+  <line x1="500" y1="378" x2="500" y2="418" class="flowchart-arrow" />
+
+  <rect x="120" y="418" width="700" height="100" class="flowchart-box" />
+  <text x="500" y="444" text-anchor="middle" class="flowchart-text">
+    <tspan x="500" dy="0">MX_DMA_Init()</tspan>
+    <tspan x="500" dy="1.5em">MX_ADC1_Init()</tspan>
+    <tspan x="500" dy="1.5em">MX_GPIO_Init()</tspan>
+    <tspan x="500" dy="1.5em">MX_TIM1_Init()</tspan>
+    <tspan x="500" dy="1.5em">MX_TIM2_Init()</tspan>
+  </text>
+  <line x1="500" y1="518" x2="500" y2="558" class="flowchart-arrow" />
+
+  <rect x="120" y="558" width="700" height="104" class="flowchart-box" />
+  <text x="500" y="584" text-anchor="middle" class="flowchart-text">
+    <tspan x="500" dy="0">Power stage off</tspan>
+    <tspan x="500" dy="1.5em">LED off</tspan>
+    <tspan x="500" dy="1.5em">Disable TIM1 MOE</tspan>
+    <tspan x="500" dy="1.5em">BLDC shutdown</tspan>
+    <tspan x="500" dy="1.5em">Align motor</tspan>
+  </text>
+  <line x1="500" y1="662" x2="500" y2="702" class="flowchart-arrow" />
+
+  <rect x="120" y="702" width="700" height="100" class="flowchart-box" />
+  <text x="500" y="728" text-anchor="middle" class="flowchart-text">
+    <tspan x="500" dy="0">Start TIM2 periodic interrupt</tspan>
+    <tspan x="500" dy="1.5em">Start TIM1 PWM/OC</tspan>
+    <tspan x="500" dy="1.5em">Enable TIM1 MOE</tspan>
+  </text>
+  <line x1="500" y1="802" x2="500" y2="842" class="flowchart-arrow" />
+
+  <rect x="120" y="842" width="700" height="60" class="flowchart-box" />
+  <text x="500" y="874" text-anchor="middle" class="flowchart-text">Main loop: while(1) idle / event driven</text>
+
+  <path d="M500 902 H260 V932" class="flowchart-arrow" />
+  <path d="M500 902 H680 V932" class="flowchart-arrow" />
+
+  <rect x="100" y="932" width="320" height="80" class="flowchart-box" />
+  <text x="260" y="958" text-anchor="middle" class="flowchart-text">
+    <tspan x="260" dy="0">TIM1 OC Delay Callback</tspan>
+    <tspan x="260" dy="1.5em" class="flowchart-note">read_all_sensors()</tspan>
+  </text>
+
+  <rect x="520" y="932" width="320" height="80" class="flowchart-box" />
+  <text x="680" y="958" text-anchor="middle" class="flowchart-text">
+    <tspan x="680" dy="0">TIM2 Period Elapsed Callback</tspan>
+    <tspan x="680" dy="1.5em" class="flowchart-note">update commutation / control timing</tspan>
+  </text>
+</svg>
+</div>
+</section>
+<section>
+<h2>Bldc.cpp</h2>
+<p class="details"><strong>File brief:</strong> BLDC motor control implementation. Contains BLDC motor control helper functions and commutation routines.</p>
+<h3><code>BLDC::BLDC(IMotorDriver *motordriver)</code></h3>
+<p class="details">Constructs a BLDC controller instance. Stores the provided H-bridge driver pointer for later control operations.</p>
+<h3><code>BLDC::set_motor_speed(float target_rpm)</code></h3>
+<p class="details">Sets the target motor speed. Calculates a target torque, current, and PWM duty cycle based on the requested RPM.</p>
+<div class="param"><strong>Parameter:</strong> <code>target_rpm</code> — Target speed in Revolutions Per Minute.</div>
+<h3><code>BLDC::get_motor_speed(float *rpm)</code></h3>
+<p class="details">Retrieves the current estimated or measured motor speed.</p>
+<div class="param"><strong>Parameter:</strong> <code>rpm</code> — Pointer to store the result in RPM.</div>
+<h3><code>BLDC::get_motor_posn(float *ang)</code></h3>
+<p class="details">Retrieves the current rotor position.</p>
+<div class="param"><strong>Parameter:</strong> <code>ang</code> — Pointer to store the result in degrees or radians.</div>
+<h3><code>BLDC::get_motor_tempe(float *temp)</code></h3>
+<p class="details">Retrieves the motor temperature.</p>
+<div class="param"><strong>Parameter:</strong> <code>temp</code> — Pointer to store the result in Celsius.</div>
+<h3><code>BLDC::get_phase_emf(uint8_t phase, float *emf)</code></h3>
+<p class="details">Retrieves the back-EMF voltage for a specific phase.</p>
+<div class="param"><strong>Parameters:</strong> <code>phase</code> — Phase index. <code>emf</code> — Pointer to store the result in Volts.</div>
+<h3><code>BLDC::get_phase_current(uint8_t phase, float *curr)</code></h3>
+<p class="details">Retrieves the instantaneous phase current.</p>
+<div class="param"><strong>Parameters:</strong> <code>phase</code> — Phase index. <code>curr</code> — Pointer to store the result in Amperes.</div>
+<h3><code>BLDC::start_motor_commutation(uint8_t current_stage, float duty)</code></h3>
+<p class="details">Starts commutation for the selected motor stage and applies the requested PWM duty cycle.</p>
+<div class="param"><strong>Parameters:</strong> <code>current_stage</code> — Commutation stage index. <code>duty</code> — PWM duty cycle.</div>
+<h3><code>BLDC::shutdown_all()</code></h3>
+<p class="details">Disables all motor PWM outputs and places the driver into a safe state.</p>
+<h3><code>BLDC::align_motor()</code></h3>
+<p class="details">Aligns the rotor by applying a fixed commutation pattern during startup.</p>
+<h3><code>BLDC::read_all_sensors()</code></h3>
+<p class="details">Reads bus voltage, temperature, back-EMF, and current feedback sensors.</p>
+<h3><code>BLDC::start_motor_openloop(float targetrpm)</code></h3>
+<p class="details">Performs open-loop startup and ramps commutation timing based on requested speed.</p>
+<div class="param"><strong>Parameter:</strong> <code>targetrpm</code> — Desired motor speed in RPM.</div>
+<h3><code>BLDC::run_speed_pid(float target_rpm)</code></h3>
+<p class="details">Runs PID-based speed control to track the requested RPM.</p>
+<div class="param"><strong>Parameter:</strong> <code>target_rpm</code> — Desired speed in RPM.</div>
+</section>
+<section>
+<h2>ihm16m1.cpp</h2>
+<p class="details"><strong>File brief:</strong> Motor driver board interface implementation for the IHM16M1.</p>
+<h3><code>IHM16M1::IHM16M1()</code></h3>
+<p class="details">Constructs the board interface and initializes internal timer, GPIO, and sensor mappings.</p>
+<h3><code>IHM16M1::set_pwm_duty_cycle(uint8_t phase, float duty)</code></h3>
+<p class="details">Sets the PWM duty cycle for the specified motor phase.</p>
+<h3><code>IHM16M1::enable_pwm_phase(uint8_t phase)</code></h3>
+<p class="details">Enables PWM on the selected H-bridge phase.</p>
+<h3><code>IHM16M1::disable_pwm_phase(uint8_t phase)</code></h3>
+<p class="details">Disables PWM on the selected H-bridge phase.</p>
+<h3><code>IHM16M1::init()</code></h3>
+<p class="details">Initializes timers, GPIO outputs, and ADC sensor interfaces.</p>
+<h3><code>IHM16M1::get_vbus(float *vbus)</code></h3>
+<p class="details">Reads the supply bus voltage.</p>
+<h3><code>IHM16M1::get_temperature(float *temperature)</code></h3>
+<p class="details">Reads the motor board temperature sensor.</p>
+<h3><code>IHM16M1::get_backemf(uint8_t phase, float *bemf)</code></h3>
+<p class="details">Reads the back-EMF voltage for a phase.</p>
+<h3><code>IHM16M1::get_fdbkcurrent(uint8_t phase, float *fdbkcurrent)</code></h3>
+<p class="details">Reads current feedback for a phase.</p>
+</section>
+<section>
+<h2>Sensor.cpp</h2>
+<p class="details"><strong>File brief:</strong> Sensor abstraction that converts ADC raw values into calibrated engineering units.</p>
+<h3><code>Sensor::Sensor(IPeripheral *periph, float sensorgain, float sensoroffset)</code></h3>
+<p class="details">Creates a sensor wrapper with target peripheral, gain, and offset.</p>
+<h3><code>Sensor::init()</code></h3>
+<p class="details">Initializes the underlying sensor peripheral.</p>
+<h3><code>Sensor::read()</code></h3>
+<p class="details">Reads and converts the sensor value.</p>
+<h3><code>Sensor::write()</code></h3>
+<p class="details">Writes any required state to the sensor peripheral.</p>
+<h3><code>Sensor::uninit()</code></h3>
+<p class="details">Deinitializes the sensor peripheral.</p>
+</section>
+<section>
+<h2>stm_adc.cpp</h2>
+<p class="details"><strong>File brief:</strong> ADC1 configuration and DMA setup for motor sensor acquisition.</p>
+<h3><code>MX_ADC1_Init()</code></h3>
+<p class="details">Configures ADC1 for continuous conversion of multiple channels with DMA.</p>
+<h3><code>HAL_ADC_MspInit(ADC_HandleTypeDef* adcHandle)</code></h3>
+<p class="details">Sets up ADC clocks, GPIO analog pins, and DMA channel.</p>
+<h3><code>HAL_ADC_MspDeInit(ADC_HandleTypeDef* adcHandle)</code></h3>
+<p class="details">Releases ADC hardware resources and DMA link.</p>
+</section>
+<section>
+<h2>stm_gpio.cpp</h2>
+<p class="details"><strong>File brief:</strong> GPIO driver wrapper for motor control and board status pins.</p>
+<h3><code>Gpio::init()</code></h3>
+<p class="details">Initializes the GPIO pin.</p>
+<h3><code>Gpio::write()</code></h3>
+<p class="details">Writes the output value to the GPIO pin.</p>
+<h3><code>Gpio::read()</code></h3>
+<p class="details">Reads the current value of the GPIO pin.</p>
+<h3><code>Gpio::uninit()</code></h3>
+<p class="details">Uninitializes the GPIO pin.</p>
+</section>
+<section>
+<h2>stm_timer.cpp</h2>
+<p class="details"><strong>File brief:</strong> Timer wrapper implementation for PWM and compare events.</p>
+<h3><code>Timer::Timer(TIM_HandleTypeDef *timer, channel_t channelnumber)</code></h3>
+<p class="details">Creates a timer wrapper for the given TIM instance and channel.</p>
+<h3><code>Timer::init()</code></h3>
+<p class="details">Initializes the timer channel for PWM output.</p>
+<h3><code>Timer::write()</code></h3>
+<p class="details">Writes a compare value to the timer.</p>
+<h3><code>Timer::read()</code></h3>
+<p class="details">Reads the current timer compare register value.</p>
+<h3><code>Timer::uninit()</code></h3>
+<p class="details">Stops timer output and releases the channel.</p>
+</section>
+<section>
+<h2>Core Headers</h2>
+<h3><code>main.h</code></h3>
+<p class="details">Common project defines and error handler prototype.</p>
+<h3><code>motor.h</code></h3>
+<p class="details">Declares the main Core initialization function <code>peripherals_init()</code>.</p>
+<h3><code>adc.h</code></h3>
+<p class="details">Declares the ADC1 handle and initialization routine.</p>
+<h3><code>dma.h</code></h3>
+<p class="details">Declares the DMA initialization routine.</p>
+<h3><code>gpio.h</code></h3>
+<p class="details">Declares the GPIO initialization routine and includes common board headers.</p>
+<h3><code>tim.h</code></h3>
+<p class="details">Declares timer handles and TIM initialization/post-init functions.</p>
+<h3><code>stm32l4xx_it.h</code></h3>
+<p class="details">Declares exception and peripheral interrupt handler prototypes.</p>
+</section>
+<section>
+<h2>Core Sources</h2>
+<h3><code>main.cpp</code></h3>
+<p class="details">Core entry point that initializes system peripherals and enters the main loop.</p>
+<h3><code>motor.cpp</code></h3>
+<p class="details">Implements core peripheral startup, clock configuration, and motor control callbacks.</p>
+<h3><code>gpio.c</code></h3>
+<p class="details">Configures MCU GPIO pins for analog inputs and output signals, including the Nucleo LED.</p>
+<h3><code>adc.c</code></h3>
+<p class="details">Implements ADC1 initialization, channel configuration, and ADC/Msp callback functions.</p>
+<h3><code>dma.c</code></h3>
+<p class="details">Enables DMA controller clock and sets DMA interrupt priorities.</p>
+<h3><code>tim.c</code></h3>
+<p class="details">Configures TIM1 for PWM output and TIM2 for commutation timing, plus timer MSP callbacks.</p>
+<h3><code>stm32l4xx_hal_msp.c</code></h3>
+<p class="details">Initializes the MCU's system-level MSP configuration.</p>
+<h3><code>stm32l4xx_it.c</code></h3>
+<p class="details">Contains Cortex-M exception handlers and peripheral interrupt handlers.</p>
+<h3><code>syscalls.c</code></h3>
+<p class="details">Provides minimal system call stubs needed by the runtime for I/O.</p>
+<h3><code>sysmem.c</code></h3>
+<p class="details">Handles low-level heap allocation for the C runtime.</p>
+<h3><code>system_stm32l4xx.c</code></h3>
+<p class="details">Provides system setup and <code>SystemCoreClock</code> update routines.</p>
+</section>
+</body>
+</html>

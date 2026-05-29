@@ -41,15 +41,29 @@ char **environ = __env;
 
 
 /* Functions */
+/**
+ * @brief  Initialize semihosting or debug monitor handles.
+ * @retval None
+ */
 void initialise_monitor_handles()
 {
 }
 
+/**
+ * @brief  Return the current process ID.
+ * @retval int Process identifier (always 1 for bare-metal firmware).
+ */
 int _getpid(void)
 {
   return 1;
 }
 
+/**
+ * @brief  Signal a process.
+ * @param  pid Process identifier
+ * @param  sig Signal number
+ * @retval int Error code (-1 on unsupported operation)
+ */
 int _kill(int pid, int sig)
 {
   (void)pid;
@@ -58,12 +72,24 @@ int _kill(int pid, int sig)
   return -1;
 }
 
+/**
+ * @brief  Terminate a process, halting the CPU in embedded firmware.
+ * @param  status Exit status
+ * @retval None
+ */
 void _exit (int status)
 {
   _kill(status, -1);
   while (1) {}    /* Make sure we hang here */
 }
 
+/**
+ * @brief  Read bytes from a file descriptor.
+ * @param  file File descriptor
+ * @param  ptr  Output buffer pointer
+ * @param  len  Number of bytes to read
+ * @retval int Number of bytes read
+ */
 __attribute__((weak)) int _read(int file, char *ptr, int len)
 {
   (void)file;
@@ -77,6 +103,13 @@ __attribute__((weak)) int _read(int file, char *ptr, int len)
   return len;
 }
 
+/**
+ * @brief  Write bytes to a file descriptor.
+ * @param  file File descriptor
+ * @param  ptr  Input buffer pointer
+ * @param  len  Number of bytes to write
+ * @retval int Number of bytes written
+ */
 __attribute__((weak)) int _write(int file, char *ptr, int len)
 {
   (void)file;

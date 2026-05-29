@@ -1,3 +1,8 @@
+/**
+ * @file Bldc.cpp
+ * @brief BLDC motor control implementation.
+ * @details Contains BLDC motor control helper functions and commutation routines.
+ */
 
 extern "C" {
     #include "gpio.h"
@@ -10,30 +15,32 @@ extern "C" {
 #include <Sensor.h>
 
 
-
+/**
+ * @brief Constructs a BLDC controller instance.
+ * @param motordriver Pointer to the motor driver interface.
+ * @details Stores the provided H-bridge driver pointer for later control operations.
+ */
 BLDC :: BLDC(IMotorDriver *motordriver)
 {
     if(motordriver!=nullptr)
     {
         hbridge = motordriver;
     }
-
-    
-    
 }
+
 /* Vreq = Ireq * R + L * dI/dt + Vbemf*/
 
 /**
  * @brief Sets the target motor speed.
- * @details Future Implementation: Target RPM -> Torque -> Current -> PWM.
- * @param rpm Target speed in Revolutions Per Minute.
+ * @details Calculates a target torque, current, and PWM duty cycle based on the requested RPM.
+ *          This function currently uses a simplified model with viscous friction and back-EMF.
+ * @param target_rpm Target speed in Revolutions Per Minute.
  */
 void BLDC::set_motor_speed(float target_rpm) 
 {
     float backemflocal;
     if(hbridge!=nullptr)
     {
-        
         float angular_speed = target_rpm*0.1047f;   //20 * .1047 = 2.094 
         float torque = this->viscous_friction * angular_speed + this->static_load_tq; // 2.094*0.00001 + 0.015 = 0.0150;
     
@@ -71,7 +78,6 @@ void BLDC::get_motor_speed(float *rpm)
         // TODO: Calculate RPM from BEMF zero-crossing or Hall sensors
         *rpm = 0.0f;
     }
-
 }
 
 /**
@@ -86,7 +92,6 @@ void BLDC::get_motor_posn(float *ang)
         // TODO: Implement position estimation/tracking
         *ang = 0.0f;      
     }
-
 }
 
 /**
@@ -101,7 +106,6 @@ void BLDC::get_motor_tempe(float *temp)
         // TODO: Read from temperature sensor via hbridge
         *temp = 0.0f;
     }
-
 }
 
 /**
@@ -117,7 +121,6 @@ void BLDC::get_phase_emf(uint8_t phase, float *emf)
          // TODO: Read ADC value from BEMF divider for the specific phase
          *emf = 0.0f;
     }
-
 }
 
 /**
@@ -133,17 +136,20 @@ void BLDC::get_phase_current(uint8_t phase, float *curr)
          // TODO: Read shunt resistor/hall effect current sensor
         *curr = 0.0f;      
     }
-
 }
 
+/**
+ * @brief Starts commutation for the specified motor stage.
+ * @param current_stage The commutation stage index (0-5).
+ * @param duty PWM duty cycle to apply for the active phase.
+ * @details Configures the H-bridge outputs for the selected stage and stores the floating phase.
+ */
 void BLDC::start_motor_commutation(uint8_t current_stage , float duty)
 {
     if(hbridge!=nullptr)
     {
-        
         this->commutation_stage = current_stage;
         
-        //implement 6 switch here A-B , whatever you wrote in notebook with 20% dutycycle
         switch(current_stage)
         {
             case 0://U-V
@@ -158,14 +164,11 @@ void BLDC::start_motor_commutation(uint8_t current_stage , float duty)
                 hbridge->set_pwm_duty_cycle(0,duty);   //INU set to PWM
 
                 this->floating_phase = 2;
-                
                 break;
             case 1:  //U-W
                 //V floating
                 hbridge->set_pwm_duty_cycle(1, 0.0f); // Set to neutral/safe
                 hbridge->disable_pwm_phase(1);          //V phase floating  
-                
-
                 
                 hbridge->enable_pwm_phase(2);     //ENW set to 1
                 hbridge->set_pwm_duty_cycle(2,0.0);   //INW set to PWM 0%  
@@ -173,13 +176,11 @@ void BLDC::start_motor_commutation(uint8_t current_stage , float duty)
                 hbridge->set_pwm_duty_cycle(0,duty);   //INVU set to PWM
 
                 this->floating_phase = 1;
-                
                 break;
             case 2:  //V-W
                 //U floating
                 hbridge->disable_pwm_phase(0);          //U phase floating
                 hbridge->set_pwm_duty_cycle(0,0.0f);   //INVU set to PWM
-
 
                 hbridge->enable_pwm_phase(2);     //ENW set to 1
                 hbridge->set_pwm_duty_cycle(2,0.0);   //INW set to PWM 0%
@@ -187,14 +188,11 @@ void BLDC::start_motor_commutation(uint8_t current_stage , float duty)
                 hbridge->set_pwm_duty_cycle(1,duty);   //INV set to PWM
 
                 this->floating_phase = 0;
-                
                 break;
             case 3: //V-U
-
                 //W floating
                 hbridge->disable_pwm_phase(2);          //W phase floating  
                 hbridge->set_pwm_duty_cycle(2,0.0f);   //INVU set to PWM
-
 
                 hbridge->enable_pwm_phase(0);     //ENU set to 1
                 hbridge->set_pwm_duty_cycle(0,0.0);   //INU set to PWM 0%
@@ -203,55 +201,50 @@ void BLDC::start_motor_commutation(uint8_t current_stage , float duty)
                 hbridge->set_pwm_duty_cycle(1,duty);   //INV set to PWM
                 
                 this->floating_phase = 2;
-                
                 break;
             case 4://W-U
                 //V floating
                 hbridge->disable_pwm_phase(1);          //V phase floating 
                 hbridge->set_pwm_duty_cycle(1,0.0f);   //INVU set to PWM
 
-                
                 hbridge->enable_pwm_phase(0);     //ENU set to 1
                 hbridge->set_pwm_duty_cycle(0,0.0);   //INU set to PWM 0%
                 hbridge->enable_pwm_phase(2);           //ENW set to 1
                 hbridge->set_pwm_duty_cycle(2,duty);   //INW set to PWM
-                
+
                 this->floating_phase = 1;
-                
                 break;
             case 5: //W-V
                 //U floating
                 hbridge->disable_pwm_phase(0);          //U phase floating
                 hbridge->set_pwm_duty_cycle(0,0.0f);   //INVU set to PWM
 
-                
                 hbridge->enable_pwm_phase(1);     //ENV set to 1
                 hbridge->set_pwm_duty_cycle(1,0.0);   //INV set to PWM 0
                 hbridge->enable_pwm_phase(2);           //ENW set to 1
                 hbridge->set_pwm_duty_cycle(2,duty);   //INW set to PWM
-                
+
                 this->floating_phase = 0;
-                //while(1);
                 break;      
-            
-     }
-
- }
-
-
+        }
+    }
 }
 
-
+/**
+ * @brief Disables all PWM outputs and shuts down the motor driver.
+ * @details Leaves the H-bridge in a safe disabled state for each phase.
+ */
 void BLDC::shutdown_all(void)
 {
     hbridge->disable_pwm_phase(0);  // u switch off
     hbridge->disable_pwm_phase(1);  // v switch off
     hbridge->disable_pwm_phase(2);  // w switch off
-    //hbridge->set_pwm_duty_cycle(0,0.0f);
-    //hbridge->set_pwm_duty_cycle(1,0.0f);
-    //hbridge->set_pwm_duty_cycle(2,0.0f);
 }
 
+/**
+ * @brief Aligns the motor rotor by applying a fixed commutation pattern.
+ * @details Uses a high duty cycle on the first commutation stage and holds it for 500 ms.
+ */
 void BLDC::align_motor(void)
 {
     this->start_motor_commutation(0,0.90f);
@@ -259,8 +252,10 @@ void BLDC::align_motor(void)
     this->commutation_stage++;
 }
 
-
-
+/**
+ * @brief Reads all motor-related sensors.
+ * @details Reads bus voltage, temperature, back-EMF, and phase current feedback through the H-bridge driver.
+ */
 void BLDC :: read_all_sensors(void)
 {
     if(hbridge!=nullptr)
@@ -276,6 +271,11 @@ void BLDC :: read_all_sensors(void)
     }
 }
 
+/**
+ * @brief Performs open-loop motor start-up.
+ * @param targetrpm Desired motor speed in RPM for the open-loop ramp.
+ * @details Ramps the internal speed target while adapting the commutation timer.
+ */
 void BLDC::start_motor_openloop(float targetrpm)
 {
     uint32_t frequencyArrValue = 0;
@@ -314,11 +314,13 @@ void BLDC::start_motor_openloop(float targetrpm)
         }
         
     }
-
 }
 
-
-
+/**
+ * @brief Updates motor speed using PID control.
+ * @param target_rpm Desired speed in RPM.
+ * @details Placeholder for future PID speed regulation implementation.
+ */
 void BLDC::run_speed_pid(float target_rpm) {
    
 }
