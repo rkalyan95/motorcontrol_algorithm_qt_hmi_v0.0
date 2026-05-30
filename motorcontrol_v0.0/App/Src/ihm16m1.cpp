@@ -127,6 +127,15 @@ void IHM16M1 :: disable_pwm_phase(uint8_t phase)
     {
         return;
     }
+    /* First, stop PWM for the associated timer channel and set compare to 0 to tri-state outputs safely. */
+    if(phase < timer_periphs.size() && timer_periphs[phase]!=nullptr)
+    {
+        timer_periphs[phase]->rawbuffer = 0;
+        timer_periphs[phase]->write();
+        timer_periphs[phase]->uninit(); /* stops HAL TIM PWM for this channel */
+    }
+
+    /* Finally disable the driver enable pin */
     this->gpio_periphs[phase]->rawbuffer = 0x00000000;
     this->gpio_periphs[phase]->write();
 }
@@ -169,7 +178,7 @@ void IHM16M1 :: init()
  * @brief Reads the bus voltage sensor.
  * @param vbus Pointer to store the measured bus voltage.
  */
-void IHM16M1 :: get_vbus(float *vbus)
+void IHM16M1 :: get_vbus(volatile float *vbus)
 {
     uint8_t index = static_cast<uint8_t>(sensor_id::VBUS_SENSOR_ID);
     
@@ -202,7 +211,7 @@ void IHM16M1 :: get_temperature(float *temperature)
  * @param phase Phase index (0=U, 1=V, 2=W).
  * @param bemf Pointer to store the measured back-EMF voltage.
  */
-void IHM16M1 :: get_backemf(uint8_t phase, float *bemf)
+void IHM16M1 :: get_backemf(uint8_t phase, volatile float *bemf)
 {
      static constexpr std::array<sensor_id,3> sensoridmap
      {

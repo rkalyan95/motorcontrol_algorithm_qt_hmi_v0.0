@@ -31,6 +31,7 @@ class IMotor
         static constexpr float resistance = 12.0f;
         static constexpr float inductance = 0.00005f;
         static constexpr uint8_t polepair = 7;
+        static constexpr float max_rpm = 10000.0f;
         static constexpr float maxvoltage_rated = 12.0f;
         static constexpr float maxcurrent_rated = 1.50f;
         static constexpr float kv_rating = 260.0f;
@@ -45,9 +46,9 @@ class IMotor
         float desired_I;
         float deltaI;
         float torque_rqstd;
-        float back_emf;
+        volatile float back_emf;
         float applied_voltage;
-        float voltage_reference;
+        volatile float voltage_reference;
         volatile uint8_t commutation_stage;
         uint8_t floating_phase;
         volatile float calculated_duty_cycle = 0.0f;
@@ -59,6 +60,7 @@ class IMotor
         const uint32_t acceleration_rate = 6500;
         volatile uint32_t commutation_timer_ticks=100000;
         uint8_t motor_state = 0;
+        volatile bool zcp_found_this_step = false;
     public:
         virtual void shutdown_all(void) = 0;
         virtual void align_motor(void) = 0;

@@ -10,6 +10,8 @@ extern "C" {
     #include "tim.h"
 }
 
+#include "stm32l4xx_hal_rcc.h"
+
 #include <IMotordriver.h>
 #include <IMotor.h>
 #include <Sensor.h>
@@ -41,6 +43,7 @@ void BLDC::set_motor_speed(float target_rpm)
     float backemflocal;
     if(hbridge!=nullptr)
     {
+        if(target_rpm > IMotor::max_rpm) target_rpm = IMotor::max_rpm;
         float angular_speed = target_rpm*0.1047f;   //20 * .1047 = 2.094 
         float torque = this->viscous_friction * angular_speed + this->static_load_tq; // 2.094*0.00001 + 0.015 = 0.0150;
     
@@ -75,8 +78,14 @@ void BLDC::get_motor_speed(float *rpm)
     if (rpm == nullptr) return;
     if(hbridge!=nullptr) 
     {
-        // TODO: Calculate RPM from BEMF zero-crossing or Hall sensors
-        *rpm = 0.0f;
+        uint32_t arr = (uint32_t)this->commutation_timer_ticks;
+        if(arr == 0) { *rpm = 0.0f; return; }
+        uint32_t pclk1 = HAL_RCC_GetPCLK1Freq();
+        uint32_t prescaler = htim2.Init.Prescaler + 1u;
+        uint32_t fin = pclk1 / prescaler; /* timer input clock */
+        /* Rpm = Fin * 10 / (Arr * PolePair) -- derived from Fcommut = Rpm*PolePair*0.1 */
+        float rpm_calc = ((float)fin * 10.0f) / ((float)arr * (float)IMotor::polepair);
+        *rpm = rpm_calc;
     }
 }
 
@@ -149,6 +158,11 @@ void BLDC::start_motor_commutation(uint8_t current_stage , float duty)
     if(hbridge!=nullptr)
     {
         this->commutation_stage = current_stage;
+        /* Smooth duty to avoid abrupt steps that jerk the motor */
+        static float last_comm_duty = 0.0f;
+        const float duty_alpha = 0.1f; /* apply 10% of the new command each commutation (smoother) */
+        float smoothed_duty = last_comm_duty + (duty - last_comm_duty) * duty_alpha;
+        last_comm_duty = smoothed_duty;
         
         switch(current_stage)
         {
@@ -161,7 +175,7 @@ void BLDC::start_motor_commutation(uint8_t current_stage , float duty)
                 hbridge->set_pwm_duty_cycle(1,0.0);   //INV set to PWM 0%
 
                 hbridge->enable_pwm_phase(0);           //ENU set to 1
-                hbridge->set_pwm_duty_cycle(0,duty);   //INU set to PWM
+                hbridge->set_pwm_duty_cycle(0,smoothed_duty);   //INU set to PWM
 
                 this->floating_phase = 2;
                 break;
@@ -173,7 +187,7 @@ void BLDC::start_motor_commutation(uint8_t current_stage , float duty)
                 hbridge->enable_pwm_phase(2);     //ENW set to 1
                 hbridge->set_pwm_duty_cycle(2,0.0);   //INW set to PWM 0%  
                 hbridge->enable_pwm_phase(0);           //ENU set to 1
-                hbridge->set_pwm_duty_cycle(0,duty);   //INVU set to PWM
+                hbridge->set_pwm_duty_cycle(0,smoothed_duty);   //INVU set to PWM
 
                 this->floating_phase = 1;
                 break;
@@ -185,7 +199,7 @@ void BLDC::start_motor_commutation(uint8_t current_stage , float duty)
                 hbridge->enable_pwm_phase(2);     //ENW set to 1
                 hbridge->set_pwm_duty_cycle(2,0.0);   //INW set to PWM 0%
                 hbridge->enable_pwm_phase(1);           //ENV set to 1
-                hbridge->set_pwm_duty_cycle(1,duty);   //INV set to PWM
+                hbridge->set_pwm_duty_cycle(1,smoothed_duty);   //INV set to PWM
 
                 this->floating_phase = 0;
                 break;
@@ -198,7 +212,7 @@ void BLDC::start_motor_commutation(uint8_t current_stage , float duty)
                 hbridge->set_pwm_duty_cycle(0,0.0);   //INU set to PWM 0%
 
                 hbridge->enable_pwm_phase(1);           //ENV set to 1
-                hbridge->set_pwm_duty_cycle(1,duty);   //INV set to PWM
+                hbridge->set_pwm_duty_cycle(1,smoothed_duty);   //INV set to PWM
                 
                 this->floating_phase = 2;
                 break;
@@ -210,7 +224,7 @@ void BLDC::start_motor_commutation(uint8_t current_stage , float duty)
                 hbridge->enable_pwm_phase(0);     //ENU set to 1
                 hbridge->set_pwm_duty_cycle(0,0.0);   //INU set to PWM 0%
                 hbridge->enable_pwm_phase(2);           //ENW set to 1
-                hbridge->set_pwm_duty_cycle(2,duty);   //INW set to PWM
+                hbridge->set_pwm_duty_cycle(2,smoothed_duty);   //INW set to PWM
 
                 this->floating_phase = 1;
                 break;
@@ -222,7 +236,7 @@ void BLDC::start_motor_commutation(uint8_t current_stage , float duty)
                 hbridge->enable_pwm_phase(1);     //ENV set to 1
                 hbridge->set_pwm_duty_cycle(1,0.0);   //INV set to PWM 0
                 hbridge->enable_pwm_phase(2);           //ENW set to 1
-                hbridge->set_pwm_duty_cycle(2,duty);   //INW set to PWM
+                hbridge->set_pwm_duty_cycle(2,smoothed_duty);   //INW set to PWM
 
                 this->floating_phase = 0;
                 break;      
@@ -283,6 +297,7 @@ void BLDC::start_motor_openloop(float targetrpm)
     if(hbridge!=nullptr)
     {
 
+        if(targetrpm>IMotor::max_rpm) targetrpm = IMotor::max_rpm;
         if(targetrpm>this->rampedrpm)
         {
             this->rampedrpm+=10.0f;
@@ -322,5 +337,28 @@ void BLDC::start_motor_openloop(float targetrpm)
  * @details Placeholder for future PID speed regulation implementation.
  */
 void BLDC::run_speed_pid(float target_rpm) {
-   
+    /* Simple PI controller running at commutation rate. Uses class `speed_integral` for I state. */
+    float current_rpm = 0.0f;
+    get_motor_speed(&current_rpm);
+
+    const float Kp = 0.005f; /* proportional gain */
+    const float Ki = 0.0001f; /* integral gain (small because call rate is high) */
+    float error = target_rpm - current_rpm;
+
+    /* integrate with simple accumulation; clamp integrator to avoid windup */
+    this->speed_integral += error;
+    if(this->speed_integral > 10000.0f) this->speed_integral = 10000.0f;
+    if(this->speed_integral < -10000.0f) this->speed_integral = -10000.0f;
+
+    float p_term = Kp * error;
+    float i_term = Ki * this->speed_integral;
+
+    float control = p_term + i_term;
+
+    /* apply control as a delta to duty to raise/lower torque */
+    this->calculated_duty_cycle += control;
+    if(this->calculated_duty_cycle > 0.95f) this->calculated_duty_cycle = 0.95f;
+    if(this->calculated_duty_cycle < 0.05f) this->calculated_duty_cycle = 0.05f;
+
+    (void)current_rpm;
 }

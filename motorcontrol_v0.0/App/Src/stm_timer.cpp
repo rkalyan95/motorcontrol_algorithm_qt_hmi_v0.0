@@ -50,6 +50,10 @@ template <typename channel_t, typename counter_reg_t>
  */
 void Timer<channel_t,counter_reg_t> :: uninit(void)
 {
+    if(this->periphraddress!=nullptr)
+    {
+        HAL_TIM_PWM_Stop(this->periphraddress, this->channelnumber);
+    }
 }
 template <typename channel_t, typename counter_reg_t>
 /**

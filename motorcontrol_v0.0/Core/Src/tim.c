@@ -96,7 +96,7 @@ void MX_TIM1_Init(void)
   {
     Error_Handler();
   }
-  sConfigOC.Pulse = 9;
+  sConfigOC.Pulse = 19;
   sConfigOC.OCMode = TIM_OCMODE_TOGGLE;
   if (HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
   {

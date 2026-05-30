@@ -51,10 +51,10 @@ public:
     virtual void   disable_pwm_phase(uint8_t phase)   = 0;
 	virtual void   get_pwm_duty_cycle(uint8_t phase, float *duty)			= 0;
 	
-	virtual void	get_vbus(float *vbus)									= 0;
+	virtual void	get_vbus(volatile float *vbus)									= 0;
 	virtual void	get_temperature(float *temperature)						= 0;
 	
-	virtual void	get_backemf(uint8_t phase, float *bemf)					= 0;
+	virtual void	get_backemf(uint8_t phase, volatile float *bemf)					= 0;
 	virtual void	get_fdbkcurrent(uint8_t phase, float *fdbkcurrent)		= 0;
 
 	virtual void	init()													= 0;
@@ -75,10 +75,10 @@ public:
 	void	set_pwm_duty_cycle(uint8_t phase, float duty)			override;
 	void	get_pwm_duty_cycle(uint8_t phase, float *duty)			override;
 	
-	void	get_vbus(float *vbus)									override;
+	void	get_vbus(volatile float *vbus)									override;
 	void	get_temperature(float *temperature)						override;
 	
-	void	get_backemf(uint8_t phase, float *bemf)					override;
+	void	get_backemf(uint8_t phase, volatile float *bemf)					override;
 	void	get_fdbkcurrent(uint8_t phase, float *fdbkcurrent)		override;
     void    enable_pwm_phase(uint8_t phase)    override;
     void    disable_pwm_phase(uint8_t phase)   override;

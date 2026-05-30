@@ -28,6 +28,8 @@ extern "C"
         {
           adcdmainterrupt = 1;
           dmadone = 1;
+                    extern void motor_adc_samples_ready_from_isr(void);
+                    motor_adc_samples_ready_from_isr();
         }
     }
 
