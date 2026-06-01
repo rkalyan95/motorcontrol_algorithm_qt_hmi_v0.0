@@ -2,6 +2,8 @@
 #include "gpio.h"
 #include "adc.h"
 #include "tim.h"
+#include <stdint.h>
+#include <stdbool.h>
 /*
 EnablePhaseU (GPIOC ,GPIO_PIN_8); 
 EnablePhaseV (GPIOB ,GPIO_PIN_6);
@@ -23,8 +25,8 @@ BEMF_PHA_U(&hadc1, (uint32_t)ADC_CHANNEL_6); //PA1
 BEMF_PHA_W(&hadc1, (uint32_t)ADC_CHANNEL_16);//PB1
 */
 
-static uint16_t dmalocalbuffer[8];
-static uint8_t dmadone = 0;
+uint16_t dmalocalbuffer[8];
+static volatile uint8_t dmadone = 0;
 
 uint8_t floating_phase = 0;
 uint8_t commutation_stage = 0;
@@ -33,8 +35,20 @@ uint8_t commutation_stage = 0;
 uint32_t commutation_ticks = 142851; 
 uint32_t acceleration = 2500;
 #define MIN_COMMUTATION_TICKS 3000
+#define SYNC_COMMUTATION_TICKS 9000
 
-
+volatile bool zerocrossing_detected = false;
+volatile uint8_t motor_mode = 0;
+uint16_t vbus ;
+uint16_t ntc;
+ uint16_t curr1 ;
+ uint16_t curr2 ;
+uint16_t curr3 ;
+uint16_t bemf_u ;
+uint16_t bemf_w ;
+uint16_t bemf_v ;
+volatile float bemf_phy = 0.0f;
+volatile uint8_t sync_counter = 0;
 static void setgpio(uint16_t pin, GPIO_TypeDef *port)
 {
     if(port==NULL)
@@ -231,6 +245,75 @@ static void disable_pwm_phase(uint8_t phase)
     }
 }
 
+void process_bemf(void)
+{
+    
+    float neutral_voltage = 6.0f;
+    bool rising_edge = (commutation_stage%2==0);
+    uint32_t current_ticks = 0;
+    if(motor_mode==0)
+    {
+        return;
+    }
+    switch(floating_phase)
+    {
+        case 0:
+            
+            bemf_phy = (float)bemf_u * 5.545f * 0.0008058f;
+            if(rising_edge && bemf_phy>neutral_voltage)
+            {
+                    zerocrossing_detected = true;
+                    current_ticks = __HAL_TIM_GET_AUTORELOAD(&htim2);
+            }
+            else if(!rising_edge && bemf_phy<neutral_voltage)
+            {
+                    zerocrossing_detected = true;
+                    current_ticks = __HAL_TIM_GET_AUTORELOAD(&htim2);
+            }
+            break;
+        case 1:
+            bemf_phy = (float)bemf_v * 5.545f * 0.0008058f;
+            if(rising_edge && bemf_phy>neutral_voltage)
+            {
+                    zerocrossing_detected = true;
+                     current_ticks = __HAL_TIM_GET_AUTORELOAD(&htim2);
+            }
+            else if(!rising_edge && bemf_phy<neutral_voltage)
+            {
+                    zerocrossing_detected = true;
+                     current_ticks = __HAL_TIM_GET_AUTORELOAD(&htim2);
+            }
+            break;
+        case 2:
+            bemf_phy = (float)bemf_w * 5.545f * 0.0008058f;
+            if(rising_edge && bemf_phy>neutral_voltage)
+            {
+                    zerocrossing_detected = true;
+                     current_ticks = __HAL_TIM_GET_AUTORELOAD(&htim2);
+            }
+            else if(!rising_edge && bemf_phy<neutral_voltage)
+            {
+                    zerocrossing_detected = true;
+                     current_ticks = __HAL_TIM_GET_AUTORELOAD(&htim2);
+            }
+            break;
+        default:
+            return;
+    }
+
+
+    if(zerocrossing_detected && motor_mode==2)
+    {
+        zerocrossing_detected = false;
+        
+        uint32_t new_ticks = current_ticks / 2;
+        if(new_ticks<MIN_COMMUTATION_TICKS)
+        {
+            new_ticks = MIN_COMMUTATION_TICKS;
+        }
+         __HAL_TIM_SET_AUTORELOAD(&htim2, new_ticks - 1);
+    }
+}
 void motor_shutdown(void)
 {
     disable_pwm_phase(0);
@@ -322,6 +405,7 @@ void motor_start(void)
     tim_init(&htim1, (uint32_t)TIM_CHANNEL_1);
     tim_init(&htim1, (uint32_t)TIM_CHANNEL_2);
     tim_init(&htim1, (uint32_t)TIM_CHANNEL_3);
+    adc_init(&hadc1);
     align_motor();
     HAL_TIM_Base_Start_IT(&htim2);
     HAL_TIM_Base_Start_IT(&htim1);
@@ -330,9 +414,26 @@ void motor_start(void)
 
     while(1)
     {
+        if(dmadone)
+        {
+            dmadone = 0;
+            // Process ADC values here
+            vbus = adc_read(ADC_CHANNEL_1);
+            ntc = adc_read(ADC_CHANNEL_2);
+            curr1 = adc_read(ADC_CHANNEL_8);
+            curr2 = adc_read(ADC_CHANNEL_3);
+            curr3 = adc_read(ADC_CHANNEL_4);
+            bemf_u = adc_read(ADC_CHANNEL_6);
+            bemf_w = adc_read(ADC_CHANNEL_16);
+            bemf_v = adc_read(ADC_CHANNEL_15);
+             process_bemf();
 
+            // Implement control algorithm using the ADC values
+        }
     }
 }
+
+
 
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
@@ -345,19 +446,43 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     if(htim->Instance == TIM2)
     {
         __HAL_TIM_SET_COUNTER(&htim2, 0);
-        motor_commutate(commutation_stage,0.5f);
+        motor_commutate(commutation_stage,0.75f);
         commutation_stage++;
         if(commutation_stage>5)
         {
             commutation_stage = 0;
         }
-
-        commutation_ticks = commutation_ticks - acceleration;
-        if(commutation_ticks<MIN_COMMUTATION_TICKS)
+        if(motor_mode == 0) // If in startup mode, accelerate
         {
-            commutation_ticks = MIN_COMMUTATION_TICKS;
+            if(commutation_ticks>MIN_COMMUTATION_TICKS)
+            {
+               commutation_ticks -= acceleration; 
+            }
+
+            __HAL_TIM_SET_AUTORELOAD(&htim2, commutation_ticks-1);
+
+            if(commutation_ticks<SYNC_COMMUTATION_TICKS)
+            {
+                motor_mode = 1; // Switch to sync mode
+                sync_counter = 0;
+            }
+            
         }
-        __HAL_TIM_SET_AUTORELOAD(&htim2, commutation_ticks);
+        else if(motor_mode == 1) // If in running mode, maintain speed
+        {
+            if(zerocrossing_detected)
+            {
+                zerocrossing_detected = 0;
+                sync_counter++;
+            }
+
+            if(sync_counter>=5)
+            {
+                sync_counter = 0;
+                motor_mode = 2; // Switch to closed-loop control mode
+            }
+        }
+        
     }
 }
 
