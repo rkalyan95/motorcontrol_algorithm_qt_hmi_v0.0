@@ -4,7 +4,7 @@
         {
             "name": "Debug MCU",
             "cwd": "${workspaceFolder}",
-            "executable": "${workspaceFolder}/build/motorcontrol_v0.0.elf",
+            "executable": "${workspaceFolder}/build/demosessions.elf",
             "request": "launch",
             "type": "cortex-debug",
             "runToEntryPoint": "main",
