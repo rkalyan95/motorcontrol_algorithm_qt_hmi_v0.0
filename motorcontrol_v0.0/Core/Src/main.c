@@ -94,7 +94,7 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-motor_start();
+  motor_start();
   /* USER CODE END 2 */
 
   /* Infinite loop */
