@@ -1,3 +1,11 @@
+/**
+ * @file motor.c
+ * @brief BLDC motor control implementation, ADC/DMA sensor sampling, and commutation helpers.
+ *
+ * This file provides the motor startup sequence, commutation stage handling, BEMF processing,
+ * timer callback handling, and helper routines for GPIO/ADC/TIM access.
+ */
+
 #include "motor.h"
 #include "gpio.h"
 #include "adc.h"
@@ -49,6 +57,11 @@ uint16_t bemf_w ;
 uint16_t bemf_v ;
 volatile float bemf_phy = 0.0f;
 volatile uint8_t sync_counter = 0;
+/**
+ * @brief Set a GPIO output pin to the active state.
+ * @param pin GPIO pin identifier.
+ * @param port GPIO port base address.
+ */
 static void setgpio(uint16_t pin, GPIO_TypeDef *port)
 {
     if(port==NULL)
@@ -59,6 +72,11 @@ static void setgpio(uint16_t pin, GPIO_TypeDef *port)
     HAL_GPIO_WritePin(port, pin, GPIO_PIN_SET);
 
 }
+/**
+ * @brief Clear a GPIO output pin.
+ * @param pin GPIO pin identifier.
+ * @param port GPIO port base address.
+ */
 static void cleargpio(uint16_t pin, GPIO_TypeDef *port)
 {
     if(port==NULL)
@@ -68,6 +86,12 @@ static void cleargpio(uint16_t pin, GPIO_TypeDef *port)
     }
     HAL_GPIO_WritePin(port, pin, GPIO_PIN_RESET);
 }
+/**
+ * @brief Read a GPIO input pin state.
+ * @param pin GPIO pin identifier.
+ * @param port GPIO port base address.
+ * @param[out] value Returned pin state (0 or 1).
+ */
 static void readgpio(uint16_t pin, GPIO_TypeDef *port,uint8_t *value)
 {
     if(port==NULL)
@@ -78,6 +102,10 @@ static void readgpio(uint16_t pin, GPIO_TypeDef *port,uint8_t *value)
     *value = HAL_GPIO_ReadPin(port, pin);
 }
 
+/**
+ * @brief Initialize the ADC driver and start DMA into the local buffer.
+ * @param hadc Pointer to the ADC handle.
+ */
 static void adc_init(ADC_HandleTypeDef *hadc)
 {
     if(hadc==NULL)
@@ -87,6 +115,10 @@ static void adc_init(ADC_HandleTypeDef *hadc)
     HAL_ADC_Start_DMA(hadc, (uint32_t *)dmalocalbuffer, 8);
 }
 
+/**
+ * @brief Stop ADC DMA and deinitialize ADC sampling.
+ * @param hadc Pointer to the ADC handle.
+ */
 static void adc_uninit(ADC_HandleTypeDef *hadc)
 {
     if(hadc==NULL)
@@ -96,6 +128,11 @@ static void adc_uninit(ADC_HandleTypeDef *hadc)
     HAL_ADC_Stop_DMA(hadc);
 }
 
+/**
+ * @brief Read the latest ADC sample for a configured channel from the DMA buffer.
+ * @param channel_num ADC channel identifier.
+ * @return ADC sample value, or 0 if the channel is unknown.
+ */
 static uint16_t adc_read(uint8_t channel_num)
 {
     uint16_t value = 0;
@@ -135,6 +172,11 @@ static uint16_t adc_read(uint8_t channel_num)
     return value;
 }
 
+/**
+ * @brief Start PWM output on the specified timer channel.
+ * @param htim Pointer to the timer handle.
+ * @param Channel Timer channel identifier.
+ */
 static void tim_init(TIM_HandleTypeDef *htim, uint32_t Channel)
 {
     if(htim==NULL)
@@ -144,6 +186,11 @@ static void tim_init(TIM_HandleTypeDef *htim, uint32_t Channel)
     HAL_TIM_PWM_Start(htim, Channel);
 }
 
+/**
+ * @brief Stop PWM output on the specified timer channel.
+ * @param htim Pointer to the timer handle.
+ * @param Channel Timer channel identifier.
+ */
 static void tim_uninit(TIM_HandleTypeDef *htim, uint32_t Channel)
 {
     if(htim==NULL)
@@ -153,6 +200,12 @@ static void tim_uninit(TIM_HandleTypeDef *htim, uint32_t Channel)
     HAL_TIM_PWM_Stop(htim, Channel);
 }
 
+/**
+ * @brief Set the compare value for a timer PWM channel.
+ * @param htim Pointer to the timer handle.
+ * @param Channel Timer channel identifier.
+ * @param value Compare value to write.
+ */
 static void tim_write(TIM_HandleTypeDef *htim, uint32_t Channel,uint32_t value)
 {
     if(htim==NULL)
@@ -162,6 +215,12 @@ static void tim_write(TIM_HandleTypeDef *htim, uint32_t Channel,uint32_t value)
     __HAL_TIM_SET_COMPARE(htim, Channel, value);
 }
 
+/**
+ * @brief Read the current PWM compare value from a timer channel.
+ * @param htim Pointer to the timer handle.
+ * @param Channel Timer channel identifier.
+ * @param[out] value Current compare register value.
+ */
 static void tim_read(TIM_HandleTypeDef *htim, uint32_t Channel,uint32_t *value)
 {
     if(htim==NULL)
@@ -172,6 +231,11 @@ static void tim_read(TIM_HandleTypeDef *htim, uint32_t Channel,uint32_t *value)
 }
 
 
+/**
+ * @brief Convert a phase duty cycle to a timer compare value and update the PWM channel.
+ * @param phase Motor phase index: 0=U, 1=V, 2=W.
+ * @param dutycycle Duty cycle in the range [0.0, 1.0].
+ */
 static void pwm_write(uint8_t phase, float dutycycle)
 {
     if(dutycycle>1.0f) 
@@ -203,6 +267,11 @@ static void pwm_write(uint8_t phase, float dutycycle)
 
 
 
+/**
+ * @brief Enable a motor phase by switching its enable GPIO and applying PWM.
+ * @param phase Motor phase index: 0=U, 1=V, 2=W.
+ * @param dutycycle PWM duty cycle to apply on the enabled phase.
+ */
 static void enable_pwm_phase(uint8_t phase,float dutycycle)
 {
     switch(phase)
@@ -224,6 +293,10 @@ static void enable_pwm_phase(uint8_t phase,float dutycycle)
     }
 }
 
+/**
+ * @brief Disable a motor phase by clearing its enable GPIO and forcing zero PWM.
+ * @param phase Motor phase index: 0=U, 1=V, 2=W.
+ */
 static void disable_pwm_phase(uint8_t phase)
 {
     switch(phase)
@@ -245,6 +318,12 @@ static void disable_pwm_phase(uint8_t phase)
     }
 }
 
+/**
+ * @brief Process the floating phase BEMF measurement and detect zero crossings.
+ *
+ * Converts the selected raw ADC BEMF channel into a physical voltage value, then sets
+ * the zero crossing flag when the floating phase crosses the estimated neutral voltage.
+ */
 void process_bemf(void)
 {
     
@@ -314,6 +393,9 @@ void process_bemf(void)
          __HAL_TIM_SET_AUTORELOAD(&htim2, new_ticks - 1);
     }
 }
+/**
+ * @brief Disable all motor phases and place the driver in a safe shutdown state.
+ */
 void motor_shutdown(void)
 {
     disable_pwm_phase(0);
@@ -321,6 +403,11 @@ void motor_shutdown(void)
     disable_pwm_phase(2);
 }
 
+/**
+ * @brief Set the BLDC commutation stage and drive two active phases.
+ * @param stage Commutation stage index [0..5].
+ * @param dutycycle PWM duty cycle for the active phases.
+ */
 void motor_commutate(uint8_t stage , float dutycycle)
 {
         switch(stage)
@@ -371,6 +458,12 @@ void motor_commutate(uint8_t stage , float dutycycle)
 }
 
 
+/**
+ * @brief ADC conversion complete DMA callback.
+ *
+ * Signals the main loop that a fresh batch of ADC samples is available.
+ * @param hadc Pointer to the ADC handle.
+ */
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
     if(hadc==NULL)
@@ -381,16 +474,31 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 
 }
 
+/**
+ * @brief ADC half-transfer DMA callback.
+ *
+ * Currently unused, but preserved for future mid-buffer processing.
+ * @param hadc Pointer to the ADC handle.
+ */
 void  HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc)
 {
 
 }
 
 
+/**
+ * @brief Initialize application peripherals required by motor control.
+ *
+ * This stub is present for project wiring and can be extended to initialize
+ * GPIOs, ADCs, timers, and any additional board peripherals.
+ */
 void peripherals_init(void)
 {
 
 }
+/**
+ * @brief Hold the motor in a fixed commutation state to align the rotor.
+ */
 void align_motor(void)
 {
     motor_commutate(commutation_stage,0.75f);
@@ -399,6 +507,9 @@ void align_motor(void)
 }
 
 
+/**
+ * @brief Power up the motor driver, start ADC capture and timer interrupts, and begin motor startup.
+ */
 void motor_start(void)
 {
     setgpio(GPIO_PIN_4, GPIOC); // Enable Power
@@ -436,6 +547,10 @@ void motor_start(void)
 
 
 
+/**
+ * @brief Timer callback for periodic commutation and mode progression.
+ * @param htim Pointer to the timer handle.
+ */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 
@@ -486,6 +601,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     }
 }
 
+/**
+ * @brief Timer output compare delay callback.
+ *
+ * Reserved for future BEMF-based synchronization logic and sensor sampling.
+ * @param htim Pointer to the timer handle.
+ */
 void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 {
 //to be utilised for bemf interrupt based processing later
