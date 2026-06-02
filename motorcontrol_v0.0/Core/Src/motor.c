@@ -57,6 +57,17 @@ uint16_t bemf_w ;
 uint16_t bemf_v ;
 volatile float bemf_phy = 0.0f;
 volatile uint8_t sync_counter = 0;
+
+float prev_time = 0.0f;
+float curr_time = 0.0f;
+float dt = 0.0f;
+float integral = 0.0f;
+float previous_error = 0.0f;
+float Kp = 0.1f;
+float Ki = 0.002f;
+float Kd = 0.001f;
+
+uint32_t target_ticks = 6000;
 /**
  * @brief Set a GPIO output pin to the active state.
  * @param pin GPIO pin identifier.
@@ -318,6 +329,27 @@ static void disable_pwm_phase(uint8_t phase)
     }
 }
 
+float pid_control(uint32_t setpoint , uint32_t measurement)
+{
+
+    curr_time = HAL_GetTick() / 1000.0f; // Convert ms to seconds
+    dt = curr_time - prev_time;
+    if(dt<=0.001f)
+    {
+        dt = 0.01f;
+    }
+    prev_time = curr_time;
+    float error = (float)setpoint - (float)measurement;
+    integral += error * dt;
+    //if (integral > 1000.0f) integral = 1000.0f;
+    //if (integral < -100-.0f) integral = -1000.0f;
+    float derivative = (error - previous_error) / dt;
+    float output = Kp * error + Ki * integral + Kd * derivative;
+    previous_error = error;
+    
+    return output;
+    
+}
 /**
  * @brief Process the floating phase BEMF measurement and detect zero crossings.
  *
@@ -384,13 +416,25 @@ void process_bemf(void)
     if(zerocrossing_detected && motor_mode==2)
     {
         zerocrossing_detected = false;
-        
+        uint32_t measured_ticks = current_ticks;
         uint32_t new_ticks = current_ticks / 2;
+        float pid_output = pid_control(target_ticks, new_ticks);
+        if(pid_output>1000.0f)
+        {
+            ////pid_output = 1000.0f;
+        }
+        else if(pid_output<-1000.0f)
+        {
+            ///pid_output = -1000.0f;
+        }
+        new_ticks = (uint32_t)(new_ticks + (int32_t)pid_output);
         if(new_ticks<MIN_COMMUTATION_TICKS)
         {
             new_ticks = MIN_COMMUTATION_TICKS;
         }
          __HAL_TIM_SET_AUTORELOAD(&htim2, new_ticks - 1);
+
+        
     }
 }
 /**
@@ -512,6 +556,7 @@ void align_motor(void)
  */
 void motor_start(void)
 {
+    float delay_ticks = HAL_GetTick() / 1000.0f;
     setgpio(GPIO_PIN_4, GPIOC); // Enable Power
     tim_init(&htim1, (uint32_t)TIM_CHANNEL_1);
     tim_init(&htim1, (uint32_t)TIM_CHANNEL_2);
