@@ -63,11 +63,11 @@ float curr_time = 0.0f;
 float dt = 0.0f;
 float integral = 0.0f;
 float previous_error = 0.0f;
-float Kp = 0.1f;
-float Ki = 0.002f;
-float Kd = 0.001f;
+float Kp = 0.01f;
+float Ki = 0.0005f;
+float Kd = 0.0f;
 
-uint32_t target_ticks = 6000;
+uint32_t target_ticks = 10000;
 /**
  * @brief Set a GPIO output pin to the active state.
  * @param pin GPIO pin identifier.
@@ -329,6 +329,11 @@ static void disable_pwm_phase(uint8_t phase)
     }
 }
 
+void send_data_uart(void)
+{
+     
+}
+
 float pid_control(uint32_t setpoint , uint32_t measurement)
 {
 
@@ -336,13 +341,13 @@ float pid_control(uint32_t setpoint , uint32_t measurement)
     dt = curr_time - prev_time;
     if(dt<=0.001f)
     {
-        dt = 0.01f;
+        dt = 0.001f;
     }
     prev_time = curr_time;
     float error = (float)setpoint - (float)measurement;
     integral += error * dt;
-    //if (integral > 1000.0f) integral = 1000.0f;
-    //if (integral < -100-.0f) integral = -1000.0f;
+    //if (integral > 1428571.0f) integral = 1428571.0f;
+    //if (integral < -1428571.0f) integral = -1428571.0f;
     float derivative = (error - previous_error) / dt;
     float output = Kp * error + Ki * integral + Kd * derivative;
     previous_error = error;
@@ -419,14 +424,14 @@ void process_bemf(void)
         uint32_t measured_ticks = current_ticks;
         uint32_t new_ticks = current_ticks / 2;
         float pid_output = pid_control(target_ticks, new_ticks);
-        if(pid_output>1000.0f)
-        {
-            ////pid_output = 1000.0f;
-        }
-        else if(pid_output<-1000.0f)
-        {
-            ///pid_output = -1000.0f;
-        }
+        //if(pid_output>1428571.0f)
+       // {
+          //  pid_output = 1428571.0f;
+        //}
+        //else if(pid_output<-1428571.0f)
+        //{
+          //  pid_output = -1428571.0f;
+        //}
         new_ticks = (uint32_t)(new_ticks + (int32_t)pid_output);
         if(new_ticks<MIN_COMMUTATION_TICKS)
         {
